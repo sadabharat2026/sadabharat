@@ -1,11 +1,49 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import { initialProducts } from '../data/products';
 
 const ShopContext = createContext();
 
 export const useShop = () => useContext(ShopContext);
+
+const FlyItem = ({ item, onComplete }) => {
+  const [position, setPosition] = useState({ x: item.startX, y: item.startY, scale: 1, opacity: 1 });
+
+  useEffect(() => {
+    const targetIcon = document.getElementById(`global-${item.targetType}-icon`);
+    if (targetIcon) {
+      const rect = targetIcon.getBoundingClientRect();
+      const targetX = rect.left + rect.width / 2 - 25; // center 50px image
+      const targetY = rect.top + rect.height / 2 - 25;
+
+      requestAnimationFrame(() => {
+        setPosition({ x: targetX, y: targetY, scale: 0.1, opacity: 0.5 });
+      });
+    }
+
+    const timer = setTimeout(() => onComplete(item.id), 600);
+    return () => clearTimeout(timer);
+  }, [item, onComplete]);
+
+  return (
+    <img
+      src={item.image}
+      alt="flying product"
+      className="fixed z-[9999] rounded-full shadow-2xl pointer-events-none object-cover border-2 border-white"
+      style={{
+        width: '50px',
+        height: '50px',
+        left: 0,
+        top: 0,
+        transform: `translate(${position.x}px, ${position.y}px) scale(${position.scale})`,
+        opacity: position.opacity,
+        transition: 'transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.6s ease-in'
+      }}
+    />
+  );
+};
 
 const fallbackCategories = [
   { _id: 'cat-1', name: 'Hair Care' },
@@ -52,10 +90,40 @@ export const ShopProvider = ({ children }) => {
   const [orderId, setOrderId] = useState(null);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
 
-  // Authentication & User State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+  // Flying Animation State
+  const [flyingItems, setFlyingItems] = useState([]);
+
+  const triggerFlyToCart = (e, image) => {
+    if (!e || !image) return;
+    const rect = e.target.getBoundingClientRect();
+    setFlyingItems(prev => [...prev, {
+      id: Date.now() + Math.random(),
+      startX: rect.left + rect.width / 2,
+      startY: rect.top + rect.height / 2,
+      image,
+      targetType: 'cart'
+    }]);
+  };
+
+  const triggerFlyToWishlist = (e, image) => {
+    if (!e || !image) return;
+    const rect = e.target.getBoundingClientRect();
+    setFlyingItems(prev => [...prev, {
+      id: Date.now() + Math.random(),
+      startX: rect.left + rect.width / 2,
+      startY: rect.top + rect.height / 2,
+      image,
+      targetType: 'wishlist'
+    }]);
+  };
+
+  const handleFlyAnimationComplete = useCallback((id) => {
+    setFlyingItems(prev => prev.filter(item => item.id !== id));
+  }, []);
 
   // Fetch Core Data
   const fetchData = useCallback(async () => {
@@ -320,6 +388,8 @@ export const ShopProvider = ({ children }) => {
       updateQuantity,
       toggleWishlist,
       isInWishlist,
+      triggerFlyToCart,
+      triggerFlyToWishlist,
       lastOrder,
       orderId,
       setOrderId,
@@ -332,6 +402,9 @@ export const ShopProvider = ({ children }) => {
       cartTotal: cart.reduce((acc, item) => acc + (item.price * item.quantity), 0)
     }}>
       {children}
+      {flyingItems.map(item => (
+        <FlyItem key={item.id} item={item} onComplete={handleFlyAnimationComplete} />
+      ))}
     </ShopContext.Provider>
   );
 };

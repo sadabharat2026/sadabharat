@@ -12,12 +12,14 @@ const Shop = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlCategory = searchParams.get('category') || 'all';
   const urlSort = searchParams.get('sort') || 'New Arrivals';
+  const urlSearch = searchParams.get('search') || '';
 
   const [activeCategory, setActiveCategory] = useState(urlCategory);
   const [activeSubCategory, setActiveSubCategory] = useState(null);
   const [sortBy, setSortBy] = useState(urlSort);
   const [visibleCount, setVisibleCount] = useState(15);
   const [priceSegment, setPriceSegment] = useState('All');
+  const [searchQuery, setSearchQuery] = useState(urlSearch);
 
   // Fallback subcategories if not provided by backend (can be enhanced)
   const subCategoriesMap = {
@@ -33,9 +35,10 @@ const Shop = () => {
 
   // Sync state with URL when it changes
   useEffect(() => {
-    setActiveCategory(urlCategory);
-    setSortBy(urlSort);
-  }, [urlCategory, urlSort]);
+    setActiveCategory(searchParams.get('category') || 'all');
+    setSortBy(searchParams.get('sort') || 'New Arrivals');
+    setSearchQuery(searchParams.get('search') || '');
+  }, [searchParams]);
 
   const handleCategoryChange = (catId) => {
     setActiveCategory(catId);
@@ -49,7 +52,6 @@ const Shop = () => {
     setSearchParams({ category: activeCategory, sort: newSort });
   };
 
-  const [searchQuery, setSearchQuery] = useState('');
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
@@ -101,7 +103,7 @@ const Shop = () => {
     <div className="min-h-screen bg-[#FDFCFB] font-sans selection:bg-brand-pink selection:text-white pb-20">
 
       {/* MAIN CONTENT AREA: SIDEBAR + GRID */}
-      <div className="w-full px-4 lg:px-8 pt-0 pb-8 flex flex-col lg:flex-row gap-8 items-start">
+      <div className="w-full px-4 lg:px-8 pt-6 lg:pt-8 pb-8 flex flex-col lg:flex-row gap-8 items-start">
         
         {/* MOBILE FILTER TOGGLE & SEARCH */}
         <div className="lg:hidden w-full flex flex-col gap-4 mb-4">
@@ -178,12 +180,12 @@ const Shop = () => {
             <div className="space-y-2">
               <label className="flex items-center gap-3 cursor-pointer group">
                 <input type="radio" name="category" checked={activeCategory === 'all'} onChange={() => handleCategoryChange('all')} className="w-4 h-4 accent-[#054425]" />
-                <span className={`text-sm ${activeCategory === 'all' ? 'text-[#054425] font-bold' : 'text-gray-600 group-hover:text-gray-900'}`}>All Products</span>
+                <span className={`text-sm ${activeCategory === 'all' ? 'text-[#054425] font-medium' : 'text-gray-600 group-hover:text-gray-900'}`}>All Products</span>
               </label>
               {dynamicCategories.map(cat => (
                 <label key={cat.name} className="flex items-center gap-3 cursor-pointer group">
                   <input type="radio" name="category" checked={activeCategory === cat.name} onChange={() => handleCategoryChange(cat.name)} className="w-4 h-4 accent-[#054425]" />
-                  <span className={`text-sm ${activeCategory === cat.name ? 'text-[#054425] font-bold' : 'text-gray-600 group-hover:text-gray-900'}`}>{cat.name}</span>
+                  <span className={`text-sm ${activeCategory === cat.name ? 'text-[#054425] font-medium' : 'text-gray-600 group-hover:text-gray-900'}`}>{cat.name}</span>
                 </label>
               ))}
             </div>
@@ -203,7 +205,7 @@ const Shop = () => {
               ].map(s => (
                 <label key={s.id} className="flex items-center gap-3 cursor-pointer group">
                   <input type="radio" name="price" checked={priceSegment === s.id} onChange={() => setPriceSegment(s.id)} className="w-4 h-4 accent-[#054425]" />
-                  <span className={`text-sm ${priceSegment === s.id ? 'text-[#054425] font-bold' : 'text-gray-600 group-hover:text-gray-900'}`}>{s.label}</span>
+                  <span className={`text-sm ${priceSegment === s.id ? 'text-[#054425] font-medium' : 'text-gray-600 group-hover:text-gray-900'}`}>{s.label}</span>
                 </label>
               ))}
             </div>

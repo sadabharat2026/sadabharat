@@ -14,6 +14,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { cartCount, wishlistCount, setIsCartDrawerOpen, isAuthenticated, user, categories } = useShop();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isRecentsOpen, setIsRecentsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(2); // Mockup badge 2 matching image
   const [isAnimatingCart, setIsAnimatingCart] = useState(false);
@@ -79,7 +80,7 @@ const Navbar = () => {
 
   const menuItems = [
     { name: 'Home', link: '/' },
-    { name: 'Categories', link: '/shop', hasDropdown: true },
+    { name: 'Categories', link: '/shop', hasDropdown: true, isMegaMenu: true },
     { name: 'Shop', link: '/shop' },
     { name: 'Offers', link: '/offers', hasDropdown: true, isOffers: true },
     { name: 'Best Sellers', link: '/shop?sort=popular' },
@@ -168,73 +169,150 @@ const Navbar = () => {
 
           {/* Right Column: Icons Grid on the right side */}
           <div className="flex items-center gap-4 md:gap-6 lg:gap-8 text-[#054425] shrink-0 font-sans select-none ml-auto md:ml-0 md:pr-4 lg:pr-8">
-            
-            {/* Notification Bell */}
-            <div className="relative flex items-center justify-center">
-              <button
-                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                className="cursor-pointer hover:scale-105 transition-transform flex flex-col items-center justify-center gap-1 group"
-              >
-                <div className="relative p-1">
-                  <FiBell className="text-lg md:text-xl" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[7px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold">
-                      {unreadCount}
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px] font-medium hidden md:block">Alerts</span>
-              </button>
+            <div className="flex items-center gap-4 md:gap-5">
+              
+              {/* Recents */}
+              <div className="relative">
+                <button
+                  onClick={() => { setIsRecentsOpen(!isRecentsOpen); setIsNotificationsOpen(false); }}
+                  className="flex flex-col items-center justify-center gap-1 group hover:scale-105 transition-transform"
+                >
+                  <div className="relative p-1">
+                    <FiClock className="text-lg md:text-xl text-[#054425] group-hover:text-[#D4AF37] transition-colors" />
+                  </div>
+                  <span className="text-[10px] font-medium hidden md:block">Recents</span>
+                </button>
 
-              <AnimatePresence>
-                {isNotificationsOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setIsNotificationsOpen(false)} />
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute right-0 mt-14 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden"
-                    >
-                      <div className="bg-[#054425] p-3.5 flex justify-between items-center">
-                        <h3 className="text-[10px] font-black uppercase text-white tracking-widest">Alerts</h3>
-                        {unreadCount > 0 && (
-                          <button onClick={markAllRead} className="text-[8px] font-black uppercase text-[#D4AF37] hover:text-white transition-colors">Mark all read</button>
-                        )}
-                      </div>
-                      <div className="max-h-80 overflow-y-auto scrollbar-hide">
-                        {notifications.length === 0 ? (
-                          <div className="p-8 text-center">
-                            <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">No Alerts</p>
-                          </div>
-                        ) : (
-                          notifications.map((n) => (
-                            <Link
-                              key={n._id}
-                              to="/profile?tab=orders"
-                              onClick={() => setIsNotificationsOpen(false)}
-                              className={`p-4 flex gap-3 border-b border-gray-50 hover:bg-gray-50 transition-colors ${!n.read ? 'bg-[#054425]/5' : ''}`}
+                <AnimatePresence>
+                  {isRecentsOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setIsRecentsOpen(false)} />
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className="absolute right-0 top-full mt-4 w-[320px] bg-white rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.12)] border border-gray-100 z-50 overflow-hidden origin-top-right"
+                      >
+                        <div className="bg-[#054425] px-5 py-4 flex justify-between items-center relative overflow-hidden">
+                          <div className="absolute inset-0 bg-[url('/footer_pattern.png')] opacity-10 mix-blend-overlay"></div>
+                          <h3 className="text-[11px] font-black uppercase text-white tracking-widest relative z-10 flex items-center gap-2">
+                            <FiClock className="text-[#D4AF37]" /> Recently Viewed
+                          </h3>
+                        </div>
+                        <div className="max-h-[350px] overflow-y-auto custom-sidebar-scrollbar bg-gray-50/50 p-2 space-y-2">
+                          {[
+                            { id: '1', name: 'Bhringraj Hair Oil', price: '₹349', time: '10 mins ago', img: '/bhringraj_hair_oil.png' },
+                            { id: '2', name: 'Tulsi Green Tea', price: '₹199', time: '2 hours ago', img: '/tulsi_green_tea.png' },
+                            { id: '3', name: 'Neem Tulsi Face Wash', price: '₹299', time: '5 hours ago', img: '/neem_tulsi_face_wash.png' },
+                          ].map((item, i) => (
+                            <motion.div
+                              key={item.id}
+                              initial={{ opacity: 0, x: 20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: i * 0.05 }}
+                              className="bg-white p-3 rounded-xl flex gap-3 hover:shadow-md transition-shadow cursor-pointer border border-gray-100 group/recent"
                             >
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${!n.read ? 'bg-[#054425] text-white' : 'bg-gray-100 text-gray-400'}`}>
-                                <FiClock size={12} />
+                              <div className="w-12 h-12 bg-gray-50 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
+                                <img src={item.img} alt={item.name} className="w-full h-full object-cover group-hover/recent:scale-110 transition-transform" />
                               </div>
-                              <div>
-                                <p className={`text-[10px] uppercase tracking-wider mb-1 ${!n.read ? 'font-black text-[#054425]' : 'font-bold text-gray-500'}`}>{n.title}</p>
-                                <p className="text-[9px] text-gray-400 italic leading-snug">{n.body}</p>
+                              <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                <h4 className="text-[11px] font-bold text-gray-800 truncate">{item.name}</h4>
+                                <div className="flex items-center justify-between mt-1">
+                                  <span className="text-[12px] font-bold text-[#054425]">{item.price}</span>
+                                  <span className="text-[9px] text-gray-400 font-medium">{item.time}</span>
+                                </div>
                               </div>
-                            </Link>
-                          ))
-                        )}
-                      </div>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-            </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                        <div className="p-3 bg-white border-t border-gray-100 text-center">
+                          <button className="text-[10px] font-bold uppercase text-[#D4AF37] hover:text-[#054425] tracking-widest transition-colors">Clear History</button>
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Alerts */}
+              <div className="relative">
+                <button 
+                  onClick={() => { setIsNotificationsOpen(!isNotificationsOpen); setIsRecentsOpen(false); }} 
+                  className="flex flex-col items-center justify-center gap-1 group hover:scale-105 transition-transform"
+                >
+                  <div className="relative p-1">
+                    <FiBell className="text-lg md:text-xl text-[#054425] group-hover:text-[#D4AF37] transition-colors" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[7px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-medium hidden md:block">Alerts</span>
+                </button>
+
+                <AnimatePresence>
+                  {isNotificationsOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setIsNotificationsOpen(false)} />
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className="absolute right-0 top-full mt-4 w-[340px] bg-white rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.15)] border border-gray-100 z-50 overflow-hidden origin-top-right"
+                      >
+                        <div className="bg-[#054425] px-5 py-4 flex justify-between items-center relative overflow-hidden">
+                          <div className="absolute inset-0 bg-[url('/footer_pattern.png')] opacity-10 mix-blend-overlay"></div>
+                          <h3 className="text-[11px] font-black uppercase text-white tracking-widest relative z-10 flex items-center gap-2">
+                            <FiBell className="text-[#D4AF37]" /> Notifications
+                          </h3>
+                          <button onClick={markAllRead} className="text-[9px] font-black uppercase text-[#D4AF37] hover:text-white transition-colors relative z-10 bg-white/10 px-2 py-1 rounded-full">Mark all read</button>
+                        </div>
+                        <div className="max-h-[350px] overflow-y-auto custom-sidebar-scrollbar bg-gray-50/50 p-2 space-y-2">
+                          {(notifications.length > 0 ? notifications : [
+                            { _id: 'mock1', title: 'Flash Sale Alert!', body: 'Get flat 20% off on all wellness supplements today.', read: false, type: 'promo' },
+                            { _id: 'mock2', title: 'Order Dispatched', body: 'Your order #SB-1029 is on its way. Track it now.', read: true, type: 'order' },
+                            { _id: 'mock3', title: 'New Arrival', flow: true, body: 'Experience the magic of Ayurveda with our newest glow serum.', read: true, type: 'product' },
+                          ]).map((n, i) => (
+                            <motion.div
+                              key={n._id}
+                              initial={{ opacity: 0, x: 20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: i * 0.05 }}
+                            >
+                              <Link
+                                to="/profile?tab=orders"
+                                onClick={() => setIsNotificationsOpen(false)}
+                                className={`block p-3 rounded-xl border transition-all ${!n.read ? 'bg-white border-[#054425]/20 shadow-sm' : 'bg-transparent border-transparent hover:bg-white hover:border-gray-100'}`}
+                              >
+                                <div className="flex gap-3 items-start">
+                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${!n.read ? 'bg-[#054425] text-white shadow-md' : 'bg-gray-100 text-gray-400'}`}>
+                                    <FiBell size={14} />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-start mb-0.5">
+                                      <p className={`text-[11px] uppercase tracking-wider truncate pr-2 ${!n.read ? 'font-black text-[#054425]' : 'font-bold text-gray-600'}`}>{n.title}</p>
+                                      {!n.read && <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 mt-1"></span>}
+                                    </div>
+                                    <p className="text-[10px] text-gray-500 leading-relaxed line-clamp-2">{n.body}</p>
+                                  </div>
+                                </div>
+                              </Link>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div></div>
  
             {/* Wishlist */}
             <Link to="/wishlist" className="flex flex-col items-center justify-center gap-1 group hover:scale-105 transition-transform">
               <motion.div 
+                id="global-wishlist-icon"
                 className="relative p-1"
                 animate={isAnimatingWishlist ? { scale: [1, 1.3, 1], y: [0, -4, 0] } : {}}
                 transition={{ duration: 0.4 }}
@@ -317,19 +395,71 @@ const Navbar = () => {
 
                 {/* Dropdowns */}
                 {item.hasDropdown && (
-                  <div className={`absolute top-full left-0 mt-0 ${item.isOffers ? 'w-64' : 'w-48'} bg-white shadow-xl rounded-b-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 overflow-hidden border border-gray-100`}>
-                    {item.isOffers ? (
+                  <div className={
+                    item.isMegaMenu
+                      ? "absolute top-full -left-20 mt-0 w-[700px] bg-white shadow-[0_20px_40px_rgba(0,0,0,0.08)] rounded-b-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 overflow-hidden border border-gray-100 p-8 flex gap-8 cursor-default"
+                      : `absolute top-full left-0 mt-0 ${item.isOffers ? 'w-64' : 'w-48'} bg-white shadow-xl rounded-b-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 overflow-hidden border border-gray-100`
+                  }>
+                    {item.isMegaMenu ? (
+                      <div className="w-full grid grid-cols-4 gap-8">
+                        {/* Column 1: Basic Categories */}
+                        <div className="flex flex-col gap-3">
+                          <h4 className="text-[11px] font-black uppercase text-[#054425] tracking-widest border-b border-[#054425]/10 pb-2 mb-2">By Category</h4>
+                          {categories && categories.slice(0, 6).map((cat, idx) => (
+                            <Link key={idx} to={`/shop?category=${encodeURIComponent(cat.name)}`} className="text-[12px] text-gray-600 hover:text-[#054425] hover:font-bold transition-all" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                              {cat.name}
+                            </Link>
+                          ))}
+                        </div>
+                        {/* Column 2: By Concern */}
+                        <div className="flex flex-col gap-3">
+                          <h4 className="text-[11px] font-black uppercase text-[#054425] tracking-widest border-b border-[#054425]/10 pb-2 mb-2">By Concern</h4>
+                          {['Hair Fall', 'Acne & Pimple', 'Glowing Skin', 'Immunity Boost', 'Digestion', 'Stress Relief'].map((concern, idx) => (
+                            <Link key={idx} to={`/shop?search=${encodeURIComponent(concern)}`} className="text-[12px] text-gray-600 hover:text-[#054425] hover:font-bold transition-all" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                              {concern}
+                            </Link>
+                          ))}
+                        </div>
+                        {/* Column 3: Top Ingredients */}
+                        <div className="flex flex-col gap-3">
+                          <h4 className="text-[11px] font-black uppercase text-[#054425] tracking-widest border-b border-[#054425]/10 pb-2 mb-2">Key Ingredients</h4>
+                          {[
+                            { name: 'Ashwagandha', price: 'Vitality' },
+                            { name: 'Bhringraj', price: 'Hair Growth' },
+                            { name: 'Neem & Tulsi', price: 'Purifying' },
+                            { name: 'Turmeric (Haldi)', price: 'Glow' },
+                            { name: 'Amla', price: 'Vitamin C' }
+                          ].map((ing, idx) => (
+                            <Link key={idx} to={`/shop?search=${encodeURIComponent(ing.name)}`} className="flex flex-col group/ing" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                              <span className="text-[12px] text-gray-700 group-hover/ing:text-[#054425] group-hover/ing:font-bold transition-all">{ing.name}</span>
+                              <span className="text-[9px] text-gray-400 italic">For {ing.price}</span>
+                            </Link>
+                          ))}
+                        </div>
+                        {/* Column 4: Promotional Block */}
+                        <div className="flex flex-col rounded-xl overflow-hidden group/promo relative bg-[#F4F8F5]">
+                          <img src="/skin_care_offer.png" alt="Ayurvedic Wellness" className="w-full h-32 object-cover opacity-90 group-hover/promo:scale-105 transition-transform duration-500" />
+                          <div className="p-4 flex flex-col items-center text-center">
+                            <h4 className="text-[14px] font-serif font-bold text-[#054425] mb-1">Authentic Care</h4>
+                            <p className="text-[10px] text-gray-500 mb-3">Discover the ancient secrets of beauty & wellness.</p>
+                            <Link to="/shop" className="text-[10px] font-bold uppercase tracking-wider text-[#D4AF37] hover:text-[#054425] transition-colors">
+                              View Collection →
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    ) : item.isOffers ? (
                       <>
                         {[
-                          { text: "Up to 50% Off On Ayurvedic Skincare", link: "/offers?category=Skincare" },
-                          { text: "Up to 30% Off On Herbal Haircare", link: "/offers?category=Haircare" },
-                          { text: "Flat 20% Off On Wellness Supplements", link: "/offers?category=Wellness" },
-                          { text: "Buy 1 Get 1 Free On Essential Oils", link: "/offers?category=Oils" }
+                          { text: "Up to 50% Off On Ayurvedic Skincare", link: "/offers?category=Up%20to%2050%25%20Off%20On%20Ayurvedic%20Skincare" },
+                          { text: "Up to 30% Off On Herbal Haircare", link: "/offers?category=Up%20to%2030%25%20Off%20On%20Herbal%20Haircare" },
+                          { text: "Flat 20% Off On Wellness Supplements", link: "/offers?category=Flat%2020%25%20Off%20On%20Wellness%20Supplements" },
+                          { text: "Buy 1 Get 1 Free On Essential Oils", link: "/offers?category=Buy%201%20Get%201%20Free%20On%20Essential%20Oils" }
                         ].map((offer, idx) => (
                           <Link
                             key={idx}
                             to={offer.link}
-                            className="block px-4 py-3 text-[11px] text-gray-700 hover:text-[#054425] hover:bg-[#F4F8F5] transition-colors border-b border-gray-50 last:border-0 font-bold tracking-wide"
+                            className="block px-4 py-3 text-[12px] text-gray-700 hover:text-[#054425] hover:bg-[#F4F8F5] transition-colors border-b border-gray-50 last:border-0 font-medium tracking-wide"
                             style={{ fontFamily: "'Poppins', sans-serif" }}
                           >
                             {offer.text}
@@ -341,8 +471,8 @@ const Navbar = () => {
                         <Link
                           key={idx}
                           to={`/shop?category=${encodeURIComponent(cat.name)}`}
-                          className="block px-4 py-2.5 text-xs text-gray-700 hover:text-[#054425] hover:bg-[#F4F8F5] transition-colors border-b border-gray-50 last:border-0 uppercase tracking-wider"
-                          style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 400 }}
+                          className="block px-4 py-3 text-[12px] text-gray-700 hover:text-[#054425] hover:bg-[#F4F8F5] transition-colors border-b border-gray-50 last:border-0 font-medium tracking-wide uppercase"
+                          style={{ fontFamily: "'Poppins', sans-serif" }}
                         >
                           {cat.name}
                         </Link>

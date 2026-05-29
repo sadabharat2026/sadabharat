@@ -5,7 +5,7 @@ import { useShop } from '../../context/ShopContext';
 import { useNavigate } from 'react-router-dom';
 
 const ProductCard = ({ product, offerBannerText }) => {
-  const { addToCart, toggleWishlist, isInWishlist, isAuthenticated, triggerFlyToCart } = useShop();
+  const { addToCart, toggleWishlist, isInWishlist, isAuthenticated, triggerFlyToCart, triggerFlyToWishlist } = useShop();
   const [isAdded, setIsAdded] = useState(false);
   const liked = isInWishlist(product._id);
   const navigate = useNavigate();
@@ -35,6 +35,11 @@ const ProductCard = ({ product, offerBannerText }) => {
       e.preventDefault();
       e.stopPropagation();
     }
+    
+    if (!liked && triggerFlyToWishlist && product.image) {
+      triggerFlyToWishlist(e, product.image);
+    }
+
     toggleWishlist(product);
   };
 

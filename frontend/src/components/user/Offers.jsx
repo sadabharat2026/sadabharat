@@ -1,286 +1,290 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { FiPercent } from 'react-icons/fi';
+import React, { useState, useEffect, useRef } from 'react';
 import ProductCard from './ProductCard';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiSearch, FiChevronDown, FiFilter, FiX, FiStar } from 'react-icons/fi';
+import { useSearchParams } from 'react-router-dom';
 import { useShop } from '../../context/ShopContext';
-
-// Assets (re-using some from Shop.jsx or general ones)
-import imgTirtirRed from '../../assets/products/tirtir_red_cushion.png';
-import imgTirtirConcealer from '../../assets/products/tirtir_concealer_stick.png';
-import imgCatkin from '../../assets/products/catkin_oriental_lipstick.png';
-import imgVerymiss from '../../assets/products/verymiss_lipstick_set.png';
-import imgRoseGold from '../../assets/products/rose_gold_eyeshadow_palette.png';
-import imgLakmePowder from '../../assets/products/lakme_face_powder.png';
-import imgLipGloss from '../../assets/products/plumping_lip_gloss.png';
-import imgMascara from '../../assets/products/volumizing_mascara.png';
-
-// offerProducts mock data removed. Now fully dynamic.
-import api from '../../utils/api';
+import ConsultationCTA from './ConsultationCTA';
 
 const Offers = () => {
   const { products, loading } = useShop();
-  const [coupons, setCoupons] = useState([]);
-  const [loadingCoupons, setLoadingCoupons] = useState(true);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlCategory = searchParams.get('category') || 'All Offers';
+  const urlSort = searchParams.get('sort') || 'Top Rated';
 
-  // Filter products with discounts for offers
-  const offerProducts = products.filter(p => p.discount || p.flashSale).slice(0, 8);
-  const [timeLeft, setTimeLeft] = useState({
-    hours: 5,
-    minutes: 45,
-    seconds: 0
-  });
-
-  const fetchAvailableCoupons = async () => {
-    try {
-      const res = await api.get('/coupons/public');
-      setCoupons(res.data.data.coupons.filter(c => c.isActive));
-    } catch (err) {
-      console.error("Failed to fetch divine offers:", err);
-    } finally {
-      setLoadingCoupons(false);
-    }
-  };
+  const [activeOffer, setActiveOffer] = useState(urlCategory);
+  const [sortBy, setSortBy] = useState(urlSort);
+  const [visibleCount, setVisibleCount] = useState(15);
+  const [priceSegment, setPriceSegment] = useState('All');
 
   useEffect(() => {
-    fetchAvailableCoupons();
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        let { hours, minutes, seconds } = prev;
-        if (seconds > 0) {
-          seconds--;
-        } else if (minutes > 0) {
-          minutes--;
-          seconds = 59;
-        } else if (hours > 0) {
-          hours--;
-          minutes = 59;
-          seconds = 59;
-        }
-        return { hours, minutes, seconds };
-      });
-    }, 1000);
-    return () => clearInterval(timer);
+    setActiveOffer(searchParams.get('category') || 'All Offers');
+  }, [searchParams]);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  const sortRef = useRef(null);
+  const sortOptions = ['Top Rated', 'Price: Low to High', 'Price: High to Low', 'New Arrivals'];
+
+  // Handle outside click for sorting
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (sortRef.current && !sortRef.current.contains(e.target)) setIsSortOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
+  const handleOfferChange = (offerId) => {
+    setActiveOffer(offerId);
+    setSearchParams({ category: offerId, sort: sortBy });
+  };
+
+  const handleSortChange = (newSort) => {
+    setSortBy(newSort);
+    setIsSortOpen(false);
+    setSearchParams({ category: activeOffer, sort: newSort });
+  };
+
+  const offerFilters = ['All Offers', 'Up to 50% Off On Ayurvedic Skincare', 'Up to 30% Off On Herbal Haircare', 'Flat 20% Off On Wellness Supplements', 'Buy 1 Get 1 Free On Essential Oils'];
+
+  // Filter Logic
+  const filteredProducts = products.filter(p => {
+    // In mock data, no products have discount=true. For the sake of the offers page, 
+    // we'll treat all mock products as if they are part of an active sale.
+    const isOffer = p.discount || p.flashSale || p.bestseller || p.recommended;
+    if (!isOffer) return false;
+
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.subCategory?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesPriceSegment = priceSegment === 'All' ||
+      (priceSegment === 'Budget' && p.price < 500) ||
+      (priceSegment === 'Daily' && p.price >= 500 && p.price <= 1000) ||
+      (priceSegment === 'Luxury' && p.price > 1000);
+
+    let matchesOffer = true;
+    if (activeOffer !== 'All Offers' && activeOffer !== 'all') {
+      const lowerOffer = activeOffer.toLowerCase();
+      if (lowerOffer.includes('skincare')) {
+        matchesOffer = p.category?.toLowerCase() === 'skin care' || p.category?.toLowerCase() === 'skincare';
+      } else if (lowerOffer.includes('haircare')) {
+        matchesOffer = p.category?.toLowerCase() === 'hair care' || p.category?.toLowerCase() === 'haircare';
+      } else if (lowerOffer.includes('wellness') || lowerOffer.includes('supplements')) {
+        matchesOffer = p.category?.toLowerCase() === 'wellness' || p.category?.toLowerCase() === 'health care' || p.category?.toLowerCase() === 'supplements';
+      } else if (lowerOffer.includes('oils')) {
+        matchesOffer = p.category?.toLowerCase() === 'aromatherapy' || p.subCategory?.toLowerCase() === 'oil';
+      } else {
+        // Fallback: Just return true so it doesn't show 0 results if the string is unrecognized
+        matchesOffer = true; 
+      }
+    }
+
+    return matchesSearch && matchesPriceSegment && matchesOffer;
+  }).sort((a, b) => {
+    if (sortBy === 'Price: Low to High') return a.price - b.price;
+    if (sortBy === 'Price: High to Low') return b.price - a.price;
+    if (sortBy === 'Top Rated') return b.rating - a.rating;
+    return b._id > a._id ? -1 : 1;
+  });
+
   return (
-    <div className="min-h-screen bg-[#FEFAF6] pb-20">
-      {/* Premium Hero Section */}
-      <section className="relative h-[30vh] md:h-[40vh] flex items-center justify-center overflow-hidden bg-brand-dark">
-        <div className="absolute inset-0 opacity-40">
-          {/* Decorative background pattern or image could go here */}
-          <div className="absolute inset-0 bg-gradient-to-r from-brand-pink/20 to-brand-gold/20 mix-blend-overlay"></div>
-        </div>
+    <div className="min-h-screen bg-[#FDFCFB] font-sans selection:bg-brand-pink selection:text-white pb-20">
 
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-block bg-[#FF9900] text-white font-black uppercase tracking-[0.3em] text-[7px] md:text-[9px] px-4 py-1.5 md:mb-4 shadow-xl rounded-full"
-          >
-            Big Beauty Deals | Limited Time
-          </motion.div>
-          <motion.h1
-            initial={{ opacity: 0, tracking: '0.2em' }}
-            animate={{ opacity: 1, tracking: '-0.05em' }}
-            transition={{ duration: 1, delay: 0.1 }}
-            className="text-4xl md:text-6xl font-sans font-black text-white mb-3 uppercase leading-none drop-shadow-2xl"
-          >
-            Divine <br /> <span className="text-brand-gold underline decoration-brand-pink decoration-4 md:decoration-[8px] underline-offset-[8px] md:underline-offset-[12px]">SAVINGS</span>
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="text-sm md:text-lg font-sans font-black mb-5 tracking-tight text-white/90"
-          >
-            Up to <span className="text-brand-gold">50% OFF</span> | Starting at <span className="text-brand-pink">₹200</span>
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="flex flex-wrap items-center justify-center gap-6"
-          >
-            <div className="flex items-center gap-2 text-white/80 font-bold uppercase tracking-widest text-[10px]">
-              <div className="w-1.5 h-1.5 bg-brand-gold rounded-full" /> Wide Selection
-            </div>
-            <div className="flex items-center gap-2 text-white/80 font-bold uppercase tracking-widest text-[10px]">
-              <div className="w-1.5 h-1.5 bg-brand-pink rounded-full" /> Top Brands
-            </div>
-            <div className="flex items-center gap-2 text-white/80 font-bold uppercase tracking-widest text-[10px]">
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full" /> Fast Delivery
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Promo Codes Section */}
-      <section className="container mx-auto px-4 md:px-8 mt-6">
-        <div className="bg-white rounded-3xl p-4 md:p-6 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-gold/5 -translate-y-16 translate-x-16 rotate-45" />
-          <h2 className="text-xl font-serif font-black text-brand-dark uppercase tracking-widest mb-1 flex items-center gap-3">
-            <FiPercent className="text-brand-pink" /> Promo Architect
-          </h2>
-          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.3em] mb-4">Copy & Apply at checkout for instant divinity</p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {!loadingCoupons ? coupons.map(coupon => (
-              <motion.div
-                key={coupon._id}
-                whileHover={{ y: -5 }}
-                className="bg-brand-light/10 border border-brand-pink/5 rounded-2xl p-4 flex items-center justify-between group overflow-hidden relative"
+      {/* MAIN CONTENT AREA: SIDEBAR + GRID */}
+      <div className="w-full px-4 lg:px-8 pt-6 lg:pt-8 pb-8 flex flex-col lg:flex-row gap-8 items-start">
+        
+        {/* MOBILE FILTER TOGGLE & SEARCH */}
+        <div className="lg:hidden w-full flex flex-col gap-4 mb-4">
+          <div className="flex justify-between items-center">
+            <button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold uppercase tracking-widest text-[#054425]"
+            >
+              <FiFilter /> Filters
+            </button>
+            <div className="relative">
+              <button
+                onClick={() => setIsSortOpen(!isSortOpen)}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold uppercase tracking-widest text-[#054425]"
               >
-                <div className="absolute top-0 left-0 w-1 h-full bg-brand-gold" />
-                <div>
-                  <h3 className="text-xl font-black text-brand-dark tracking-tight">{coupon.code}</h3>
-                  <p className="text-[9px] font-black text-brand-pink uppercase tracking-widest mt-1">
-                    {coupon.discountType === 'percentage' ? `${coupon.discountValue}% OFF` : `₹${coupon.discountValue} FLAT OFF`}
-                  </p>
-                  <p className="text-[8px] text-gray-400 font-serif italic mt-2">
-                    Expires: {new Date(coupon.expiryDate).toLocaleDateString()}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(coupon.code);
-                    alert("Promo Code Transmitted to Clipboard.");
-                  }}
-                  className="bg-brand-dark text-white text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-full hover:bg-black transition-all shadow-xl shadow-brand-dark/20"
-                >
-                  Copy Code
-                </button>
-              </motion.div>
-            )) : (
-              [1, 2, 3].map(i => <div key={i} className="h-24 bg-gray-50 rounded-2xl animate-pulse" />)
-            )}
-            {!loadingCoupons && coupons.length === 0 && (
-              <div className="col-span-full py-4 text-center text-gray-300 font-black uppercase text-[10px] tracking-widest italic border border-dashed border-gray-100 rounded-2xl">
-                No active promo architect found at this moment
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Offers Grid */}
-      <main className="container mx-auto px-4 md:px-8 mt-6 relative z-20">
-        <div className="bg-white rounded-[2rem] shadow-2xl p-4 md:p-6 pt-6 md:pt-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-gray-100 pb-6">
-            <div>
-              <h2 className="text-lg md:text-xl font-serif font-black text-brand-dark uppercase tracking-wide">
-                Active <span className="text-brand-pink">Curation</span>
-              </h2>
-              <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
-                {offerProducts.length} Premium items on sale
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-2 md:gap-3">
-              <div className="flex flex-col items-center justify-center bg-brand-dark text-white px-3 py-1.5 rounded-lg border border-white/10 shadow-lg">
-                <span className="text-[7px] font-black uppercase tracking-widest opacity-60">Offer Ends In</span>
-                <div className="flex gap-1.5 font-bold text-xs uppercase">
-                  <span>{String(timeLeft.hours).padStart(2, '0')}H</span>
-                  <span>{String(timeLeft.minutes).padStart(2, '0')}M</span>
-                  <span>{String(timeLeft.seconds).padStart(2, '0')}S</span>
-                </div>
-              </div>
-              <div className="flex flex-col items-center justify-center bg-brand-pink/5 text-brand-pink px-3 py-1.5 rounded-lg border border-brand-pink/10">
-                <span className="text-[7px] font-black uppercase tracking-widest opacity-60">Cashback Offer</span>
-                <span className="text-xs font-black">15% CBC</span>
-              </div>
-              <div className="flex flex-col items-center justify-center bg-brand-gold/10 text-brand-gold px-3 py-1.5 rounded-lg border border-brand-gold/10">
-                <span className="text-[7px] font-black uppercase tracking-widest opacity-40">Today's Perk</span>
-                <span className="text-xs font-black">Free Delivery</span>
-              </div>
+                Sort by <FiChevronDown />
+              </button>
+              <AnimatePresence>
+                {isSortOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 5 }}
+                    className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden"
+                  >
+                    {sortOptions.map(opt => (
+                      <button
+                        key={opt}
+                        onClick={() => handleSortChange(opt)}
+                        className={`w-full text-left px-4 py-3 text-xs font-medium transition-colors ${sortBy === opt ? 'bg-[#054425]/5 text-[#054425] font-bold' : 'hover:bg-gray-50'}`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-            {offerProducts.map((product, index) => {
-              // Create dynamic offer text based on product attributes
-              const discountPercent = product.discount || '20';
-              const categoryStr = product.category ? `ON AYURVEDIC ${product.category.toUpperCase()}` : 'ON AYURVEDIC CARE';
-              const offerBannerText = `UP TO ${discountPercent}% OFF ${categoryStr}`;
-
-              return (
-                <motion.div
-                  key={product._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <div className="group relative h-full">
-                    <ProductCard product={product} offerBannerText={offerBannerText} />
-                  </div>
-                </motion.div>
-              );
-            })}
+          <div className="relative w-full">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search offers..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:border-[#054425] focus:ring-1 focus:ring-[#054425] outline-none"
+            />
           </div>
         </div>
-      </main>
 
-      {/* Special Offer Banner */}
-      <section className="container mx-auto px-4 md:px-8 mt-12">
-        <div className="bg-brand-pink/5 border border-brand-pink/10 rounded-[2.5rem] p-8 md:p-16 flex flex-col md:flex-row items-center gap-12 overflow-hidden relative">
-          <div className="absolute -top-24 -left-24 w-64 h-64 bg-brand-gold/10 rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-brand-pink/10 rounded-full blur-3xl"></div>
+        {/* LEFT SIDEBAR FILTERS (Hidden on mobile unless toggled) */}
+        <aside data-lenis-prevent="true" className={`${isFilterOpen ? 'block' : 'hidden'} lg:flex w-full lg:w-[260px] shrink-0 flex-col gap-6 bg-white lg:bg-transparent p-6 lg:p-0 rounded-2xl lg:rounded-none lg:sticky lg:top-20 lg:h-[calc(100vh-5rem)] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] pr-2 mb-6 lg:mb-0 z-10`}>
+          <div className="flex items-center justify-between lg:hidden mb-4">
+            <h2 className="text-lg font-black text-[#054425]">Filters</h2>
+            <button onClick={() => setIsFilterOpen(false)} className="p-2 bg-gray-50 rounded-full"><FiX /></button>
+          </div>
 
-          <div className="flex-1 text-center md:text-left relative z-10">
-            <span className="text-brand-gold font-black text-[10px] uppercase tracking-[0.4em] mb-4 block">Membership Perk</span>
-            <h2 className="text-3xl md:text-5xl font-serif font-black text-brand-dark mb-6 leading-tight">
-              Join the <span className="text-brand-pink">Glow Circle</span> <br />
-              for Extra 10% Off
-            </h2>
-            <p className="text-gray-500 text-sm md:text-base mb-10 font-medium leading-relaxed max-w-lg">
-              Become a member today and unlock exclusive access to private sales, early launches, and a permanent 10% discount on all orders.
-            </p>
-            <button className="bg-brand-dark text-white px-10 py-4 rounded-none text-[11px] font-bold uppercase tracking-[0.3em] hover:bg-brand-gold transition-all shadow-xl active:scale-95">
-              Sign Up For Glow
+          <div className="hidden lg:flex items-center justify-between border-b border-gray-200 pb-4 mb-4">
+            <h2 className="text-lg font-black text-[#054425]">Filters</h2>
+            <button 
+              onClick={() => { setActiveOffer('All Offers'); setPriceSegment('All'); }}
+              className="text-xs font-bold text-gray-400 hover:text-[#054425]"
+            >
+              Clear All
             </button>
           </div>
 
-          <div className="w-full md:w-1/3 aspect-square bg-white rounded-2xl shadow-2xl p-4 flex items-center justify-center relative overflow-hidden group">
-            <img
-              src={imgRoseGold}
-              alt="Membership Gift"
-              className="w-full h-full object-cover rounded-xl transition-transform duration-700 group-hover:scale-110"
-            />
-            <div className="absolute inset-0 bg-brand-dark/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <span className="text-white text-[10px] font-black tracking-widest uppercase border border-white/40 px-6 py-2">Welcome Gift</span>
+          {/* Offers Filter */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-sans font-bold text-gray-900 flex justify-between items-center">
+              Active Offers <FiChevronDown />
+            </h3>
+            <div className="space-y-2">
+              {offerFilters.map(offer => (
+                <label key={offer} className="flex items-start gap-3 cursor-pointer group">
+                  <input type="radio" name="offer" checked={activeOffer === offer} onChange={() => handleOfferChange(offer)} className="w-4 h-4 mt-0.5 accent-[#054425]" />
+                  <span className={`text-[13px] leading-snug ${activeOffer === offer ? 'text-[#054425] font-medium' : 'text-gray-600 group-hover:text-gray-900'}`}>{offer}</span>
+                </label>
+              ))}
             </div>
           </div>
-        </div>
-         <div className="bg-brand-pink/5 border border-brand-pink/10 rounded-[2.5rem] p-8 md:p-16 flex flex-col md:flex-row items-center gap-12 overflow-hidden relative">
-            <div className="absolute -top-24 -left-24 w-64 h-64 bg-brand-gold/10 rounded-full blur-3xl"></div>
-            <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-brand-pink/10 rounded-full blur-3xl"></div>
-            
-            <div className="flex-1 text-center md:text-left relative z-10">
-               <span className="text-brand-gold font-black text-[10px] uppercase tracking-[0.4em] mb-4 block">Membership Perk</span>
-               <h2 className="text-3xl md:text-5xl font-serif font-black text-brand-dark mb-6 leading-tight">
-                  Join the <span className="text-brand-pink">Glow Circle</span> <br /> 
-                  for Extra 10% Off
-               </h2>
-               <p className="text-gray-500 text-sm md:text-base mb-10 font-medium leading-relaxed max-w-lg">
-                  Become a member today and unlock exclusive access to private sales, early launches, and a permanent 10% discount on all orders.
-               </p>
-               <button className="bg-brand-dark text-white px-10 py-4 rounded-none text-[11px] font-bold uppercase tracking-[0.3em] hover:bg-brand-gold transition-all shadow-xl active:scale-95">
-                  Sign Up For Glow
-               </button>
+
+          {/* Price Range Filter */}
+          <div className="space-y-3 pt-4 border-t border-gray-100">
+            <h3 className="text-sm font-sans font-bold text-gray-900 flex justify-between items-center">
+              Price Range <FiChevronDown />
+            </h3>
+            <div className="space-y-2">
+              {[
+                { id: 'All', label: 'All Prices' },
+                { id: 'Budget', label: '₹0 - ₹500' },
+                { id: 'Daily', label: '₹500 - ₹1000' },
+                { id: 'Luxury', label: '₹1000+' }
+              ].map(s => (
+                <label key={s.id} className="flex items-center gap-3 cursor-pointer group">
+                  <input type="radio" name="price" checked={priceSegment === s.id} onChange={() => setPriceSegment(s.id)} className="w-4 h-4 accent-[#054425]" />
+                  <span className={`text-sm ${priceSegment === s.id ? 'text-[#054425] font-medium' : 'text-gray-600 group-hover:text-gray-900'}`}>{s.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+        </aside>
+
+        {/* RIGHT CONTENT: PRODUCT GRID */}
+        <main className="flex-1 w-full">
+          {/* Top Bar (Desktop) */}
+          <div className="hidden lg:flex justify-between items-center border-b border-gray-200 pb-4 mb-4">
+            <div className="flex items-center gap-4">
+              <h1 className="text-lg font-bold text-gray-900">
+                {filteredProducts.length} Results <span className="font-normal text-gray-500">{searchQuery ? `for "${searchQuery}"` : ''}</span>
+              </h1>
+              <div className="relative ml-4">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search offers..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-4 py-1.5 bg-white border border-gray-200 rounded-full text-sm w-48 md:w-64 focus:border-[#054425] focus:ring-1 focus:ring-[#054425] outline-none transition-all shadow-sm"
+                />
+              </div>
             </div>
             
-            <div className="w-full md:w-1/3 aspect-square bg-white rounded-2xl shadow-2xl p-4 flex items-center justify-center relative overflow-hidden group">
-               <img 
-                 src={offerProducts[0]?.image || '/placeholder.jpg'} 
-                 alt="Membership Gift" 
-                 className="w-full h-full object-cover rounded-xl transition-transform duration-700 group-hover:scale-110"
-               />
-               <div className="absolute inset-0 bg-brand-dark/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <span className="text-white text-[10px] font-black tracking-widest uppercase border border-white/40 px-6 py-2">Welcome Gift</span>
-               </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">Sort by:</span>
+              <div className="relative">
+                <button
+                  onClick={() => setIsSortOpen(!isSortOpen)}
+                  className="flex items-center gap-2 text-sm font-bold text-gray-900 hover:text-[#054425]"
+                >
+                  {sortBy} <FiChevronDown />
+                </button>
+                <AnimatePresence>
+                  {isSortOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 5 }}
+                      className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden"
+                    >
+                      {sortOptions.map(opt => (
+                        <button
+                          key={opt}
+                          onClick={() => handleSortChange(opt)}
+                          className={`w-full text-left px-4 py-3 text-xs font-medium transition-colors ${sortBy === opt ? 'bg-[#054425]/5 text-[#054425] font-bold' : 'hover:bg-gray-50'}`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
-         </div>
-      </section>
+          </div>
+
+          <motion.div layout className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+            <AnimatePresence mode="popLayout">
+              {filteredProducts.slice(0, visibleCount).map((product) => {
+                const discountPercent = product.discount || '20';
+                const categoryStr = product.category ? `ON AYURVEDIC ${product.category.toUpperCase()}` : 'ON AYURVEDIC CARE';
+                const offerBannerText = `UP TO ${discountPercent}% OFF ${categoryStr}`;
+
+                return (
+                  <motion.div key={product._id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.2 }}>
+                    <ProductCard product={product} offerBannerText={offerBannerText} />
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </motion.div>
+
+          {filteredProducts.length === 0 && (
+            <div className="py-20 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200 mt-4">
+              <h3 className="text-xl font-serif font-black text-gray-400 mb-2 italic">"No matches found"</h3>
+              <p className="text-xs text-gray-500 mb-6">Try adjusting your filters or search query.</p>
+              <button
+                onClick={() => { setSearchQuery(''); setActiveOffer('All Offers'); setPriceSegment('All'); }}
+                className="px-8 py-3 bg-white border border-gray-200 text-gray-700 text-xs font-bold uppercase tracking-widest rounded-full hover:bg-gray-50 shadow-sm transition-all"
+              >
+                Clear All Filters
+              </button>
+            </div>
+          )}
+        </main>
+      </div>
+
+      <ConsultationCTA />
     </div>
   );
 };
