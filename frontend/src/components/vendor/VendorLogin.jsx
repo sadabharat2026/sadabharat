@@ -50,23 +50,11 @@ const VendorLogin = () => {
           className="absolute bottom-0 right-0 w-24 h-24 md:w-32 md:h-32 opacity-25 object-contain translate-x-2 translate-y-2 md:translate-x-4 md:translate-y-8 -rotate-90 z-[1000] pointer-events-none" 
           style={{ filter: 'brightness(0.8) sepia(1) hue-rotate(80deg) saturate(3)' }} 
         />
-        
-        {/* Back to Home Button */}
-        <Link 
-          to="/" 
-          className="absolute top-4 right-4 md:top-8 md:right-12 z-[1000] flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-white/70 backdrop-blur-md border border-gray-200 text-[#054425] text-[11px] md:text-sm font-semibold rounded-full shadow-sm hover:bg-white transition-all group"
-        >
-          <svg className="w-3 h-3 md:w-4 md:h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          <span className="hidden sm:inline">Back to Home</span>
-          <span className="sm:hidden">Back</span>
-        </Link>
 
         {/* LEFT PANEL (Image & Wave) - Uses a distinct Unsplash image and custom wave */}
         <div className="relative w-full md:w-[50%] lg:w-[55%] h-[32vh] sm:h-[40vh] md:h-full shrink-0">
           <img 
-            src="https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?q=80&w=1000&auto=format&fit=crop" 
+            src="/ayurvedic_background.png" 
             alt="Ayurvedic Background" 
             className="absolute inset-0 w-full h-full object-cover" 
           />
@@ -121,9 +109,9 @@ const VendorLogin = () => {
         </div>
 
         {/* RIGHT PANEL (Login Form) */}
-        <div className="flex-1 flex flex-col justify-start items-center px-6 pt-2 pb-6 md:pb-12 md:px-12 md:pt-16 relative z-20 bg-[#F4F1E1] overflow-y-auto overscroll-contain" data-lenis-prevent="true">
+        <div className="flex-1 flex flex-col justify-center items-center px-6 py-4 md:px-12 md:py-8 relative z-20 bg-[#F4F1E1] overflow-hidden" data-lenis-prevent="true">
           
-          <div className="w-full max-w-md md:-translate-x-8 lg:-translate-x-16 relative z-10 pt-4 md:pt-10">
+          <div className="w-full max-w-md md:-translate-x-8 lg:-translate-x-16 relative z-10 pt-2 md:pt-4">
             <div className="text-center mb-6">
               <h2 className="text-3xl md:text-5xl font-serif font-bold text-[#054425]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Sign In</h2>
               <div className="flex items-center justify-center gap-3 mt-4">

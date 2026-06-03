@@ -5,13 +5,21 @@ import {
   LayoutDashboard, Package, PlusCircle, Archive, 
   ShoppingCart, RotateCcw, IndianRupee, CreditCard, 
   Tag, Star, Bell, TrendingUp, HelpCircle, Settings,
-  Search, MessageSquare, Menu, X
+  Search, MessageSquare, Menu, X, LogOut
 } from 'lucide-react';
 import vendorLogo from '../../assets/images/WhatsApp Image 2026-05-26 at 1.34.49 PM.jpeg';
 
 const VendorLayout = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
+
+  const handleSignOut = () => {
+    localStorage.removeItem('vendor_auth');
+    if (window.showVendorToast) {
+      window.showVendorToast('Logged out successfully!', 'success');
+    }
+    navigate('/vendor/login');
+  };
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMessages, setShowMessages] = useState(false);
 
@@ -149,6 +157,24 @@ const VendorLayout = () => {
                 )}
               </NavLink>
             ))}
+            
+            {/* Sign Out Button */}
+            <button
+              onClick={handleSignOut}
+              className={`w-full flex items-center px-4 py-2.5 mt-2 rounded-lg transition-all duration-200 text-white/70 hover:bg-white/5 hover:text-white ${
+                !sidebarOpen ? 'justify-center px-0' : 'justify-between'
+              }`}
+              title={!sidebarOpen ? "Sign Out" : ""}
+            >
+              <div className="flex items-center gap-3">
+                <LogOut size={18} className="shrink-0 text-red-400" />
+                <span className={`text-[13px] font-medium font-poppins transition-all duration-300 whitespace-nowrap overflow-hidden ${
+                  sidebarOpen ? 'opacity-100 max-w-full block' : 'opacity-0 max-w-0 hidden'
+                }`}>
+                  Sign Out
+                </span>
+              </div>
+            </button>
           </div>
 
           {/* Bottom Card */}

@@ -136,12 +136,33 @@ export const ShopProvider = ({ children }) => {
         api.get('/settings')
       ]);
 
-      const apiProducts = prodRes.data.data.products;
-      if (apiProducts && apiProducts.length > 0 && apiProducts.some(p => p.name?.toLowerCase().includes('bhringraj') || p.category?.toLowerCase().includes('hair'))) {
-        setProducts(apiProducts);
-      } else {
-        setProducts(initialProducts);
+      // Load custom products from localStorage
+      let customProducts = [];
+      try {
+        const savedCustom = localStorage.getItem('sadabharat_custom_products');
+        if (savedCustom) {
+          customProducts = JSON.parse(savedCustom);
+        }
+      } catch (e) {
+        console.error("Failed to parse custom products", e);
       }
+
+      const apiProducts = prodRes.data.data.products;
+      let mergedProducts = [];
+      if (apiProducts && apiProducts.length > 0 && apiProducts.some(p => p.name?.toLowerCase().includes('bhringraj') || p.category?.toLowerCase().includes('hair'))) {
+        mergedProducts = [...apiProducts];
+      } else {
+        mergedProducts = [...initialProducts];
+      }
+
+      // Add custom products at the beginning if they don't already exist by _id
+      customProducts.forEach(cp => {
+        if (!mergedProducts.some(p => p._id === cp._id)) {
+          mergedProducts.unshift(cp);
+        }
+      });
+
+      setProducts(mergedProducts);
 
       const apiCategories = catRes.data.data.categories;
       if (apiCategories && apiCategories.length > 0) {
@@ -162,7 +183,23 @@ export const ShopProvider = ({ children }) => {
       }
     } catch (err) {
       console.error("Failed to fetch store data, using high-fidelity fallback:", err.message);
-      setProducts(initialProducts);
+      
+      // Attempt local storage fallback merge as well
+      let customProducts = [];
+      try {
+        const savedCustom = localStorage.getItem('sadabharat_custom_products');
+        if (savedCustom) {
+          customProducts = JSON.parse(savedCustom);
+        }
+      } catch (e) {}
+
+      let mergedProducts = [...initialProducts];
+      customProducts.forEach(cp => {
+        if (!mergedProducts.some(p => p._id === cp._id)) {
+          mergedProducts.unshift(cp);
+        }
+      });
+      setProducts(mergedProducts);
       setCategories(fallbackCategories);
       setBanners(fallbackBanners);
     } finally {
@@ -366,6 +403,27 @@ export const ShopProvider = ({ children }) => {
     setUser(null);
   };
 
+  const addProduct = useCallback((newProduct) => {
+    setProducts(prev => {
+      const exists = prev.some(p => p._id === newProduct._id);
+      if (exists) return prev;
+
+      // Save to localStorage
+      try {
+        const savedCustom = localStorage.getItem('sadabharat_custom_products');
+        const customList = savedCustom ? JSON.parse(savedCustom) : [];
+        if (!customList.some(p => p._id === newProduct._id)) {
+          customList.push(newProduct);
+          localStorage.setItem('sadabharat_custom_products', JSON.stringify(customList));
+        }
+      } catch (e) {
+        console.error("Failed to save custom product to localStorage", e);
+      }
+
+      return [newProduct, ...prev];
+    });
+  }, []);
+
   return (
     <ShopContext.Provider value={{
       fetchData,
@@ -397,6 +455,7 @@ export const ShopProvider = ({ children }) => {
       clearCart,
       verifyAndClearCart,
       settings,
+      addProduct,
       cartCount: cart.length,
       wishlistCount: wishlist.length,
       cartTotal: cart.reduce((acc, item) => acc + (item.price * item.quantity), 0)

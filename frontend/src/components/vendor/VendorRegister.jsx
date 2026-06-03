@@ -17,6 +17,32 @@ const VendorRegister = () => {
   const [direction, setDirection] = useState(1); // 1 for next, -1 for prev
   const navigate = useNavigate();
 
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    mobile: '',
+    password: '',
+    confirmPassword: '',
+    businessName: '',
+    gstNumber: '',
+    businessType: '',
+    businessAddress: '',
+    city: '',
+    state: '',
+    accountHolderName: '',
+    bankName: '',
+    accountNumber: '',
+    ifscCode: '',
+    upiId: '',
+    storeName: '',
+    storeDescription: '',
+    categories: [],
+    termsAccepted: false,
+    policiesAccepted: false,
+  });
+
+  const [error, setError] = useState('');
+
   const nextStep = () => {
     if (currentStep < steps.length) {
       setDirection(1);
@@ -26,13 +52,116 @@ const VendorRegister = () => {
 
   const prevStep = () => {
     if (currentStep > 1) {
+      setError('');
       setDirection(-1);
       setCurrentStep((prev) => prev - 1);
     }
   };
 
+  const validateStep = () => {
+    setError('');
+    
+    if (currentStep === 1) {
+      if (!formData.fullName.trim() || formData.fullName.trim().length < 3) {
+        setError('Full Name must be at least 3 characters.');
+        return false;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        setError('Please enter a valid email address.');
+        return false;
+      }
+      const mobileRegex = /^[0-9]{10}$/;
+      if (!mobileRegex.test(formData.mobile)) {
+        setError('Mobile number must be exactly 10 digits.');
+        return false;
+      }
+      if (formData.password.length < 6) {
+        setError('Password must be at least 6 characters long.');
+        return false;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        setError('Passwords do not match.');
+        return false;
+      }
+    }
+    
+    if (currentStep === 2) {
+      if (!formData.businessName.trim()) {
+        setError('Business Name is required.');
+        return false;
+      }
+      if (!formData.gstNumber || formData.gstNumber.trim().length !== 15) {
+        setError('GST number must be exactly 15 alphanumeric characters.');
+        return false;
+      }
+      if (!formData.businessType) {
+        setError('Please select a business type.');
+        return false;
+      }
+      if (!formData.businessAddress.trim()) {
+        setError('Business Address is required.');
+        return false;
+      }
+      if (!formData.city.trim()) {
+        setError('City is required.');
+        return false;
+      }
+      if (!formData.state.trim()) {
+        setError('State is required.');
+        return false;
+      }
+    }
+    
+    if (currentStep === 3) {
+      if (!formData.accountHolderName.trim()) {
+        setError('Account Holder Name is required.');
+        return false;
+      }
+      if (!formData.bankName.trim()) {
+        setError('Bank Name is required.');
+        return false;
+      }
+      const accRegex = /^[0-9]{9,18}$/;
+      if (!accRegex.test(formData.accountNumber)) {
+        setError('Account number must be between 9 and 18 digits.');
+        return false;
+      }
+      if (!formData.ifscCode || formData.ifscCode.trim().length !== 11) {
+        setError('IFSC code must be exactly 11 characters (e.g. HDFC0001234).');
+        return false;
+      }
+    }
+    
+    if (currentStep === 4) {
+      if (!formData.storeName.trim() || formData.storeName.trim().length < 3) {
+        setError('Store Name must be at least 3 characters.');
+        return false;
+      }
+      if (!formData.storeDescription.trim() || formData.storeDescription.trim().length < 10) {
+        setError('Store Description must be at least 10 characters.');
+        return false;
+      }
+    }
+    
+    if (currentStep === 5) {
+      if (!formData.termsAccepted) {
+        setError('You must accept the Seller Terms and Conditions.');
+        return false;
+      }
+      if (!formData.policiesAccepted) {
+        setError('You must accept the Marketplace Policies.');
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!validateStep()) return;
+    
     if (currentStep === steps.length) {
       setSubmitted(true);
     } else {
@@ -113,23 +242,11 @@ const VendorRegister = () => {
           className="absolute bottom-0 right-0 w-24 h-24 md:w-32 md:h-32 opacity-25 object-contain translate-x-2 translate-y-2 md:translate-x-4 md:translate-y-8 -rotate-90 z-[1000] pointer-events-none" 
           style={{ filter: 'brightness(0.8) sepia(1) hue-rotate(80deg) saturate(3)' }} 
         />
-        
-        {/* Back Button */}
-        <Link 
-          to="/" 
-          className="absolute top-4 right-4 md:top-8 md:right-12 z-[1000] flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-white/70 backdrop-blur-md border border-gray-200 text-[#054425] text-[11px] md:text-sm font-semibold rounded-full shadow-sm hover:bg-white transition-all group"
-        >
-          <svg className="w-3 h-3 md:w-4 md:h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          <span className="hidden sm:inline">Back to Home</span>
-          <span className="sm:hidden">Back</span>
-        </Link>
 
         {/* LEFT PANEL (Image & Wave) - Distinct Image and Wave curves for Register */}
         <div className="relative w-full md:w-[50%] lg:w-[55%] h-[32vh] sm:h-[40vh] md:h-full shrink-0">
           <img 
-            src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1000&auto=format&fit=crop" 
+            src="/ayurvedic_background.png" 
             alt="Ayurvedic Background" 
             className="absolute inset-0 w-full h-full object-cover" 
           />
@@ -184,9 +301,9 @@ const VendorRegister = () => {
         </div>
 
         {/* RIGHT PANEL (Signup Steps Form) */}
-        <div className="flex-1 flex flex-col justify-start items-center px-4 pt-2 pb-6 md:pb-12 md:px-12 md:pt-16 relative z-20 bg-[#F4F1E1] overflow-y-auto overscroll-contain" data-lenis-prevent="true">
+        <div className="flex-1 flex flex-col justify-center items-center px-4 py-4 md:py-6 md:px-12 relative z-20 bg-[#F4F1E1] overflow-hidden" data-lenis-prevent="true">
           
-          <div className="w-full max-w-md md:-translate-x-8 lg:-translate-x-16 relative z-10 pt-4 md:pt-6 flex flex-col h-full justify-between">
+          <div className="w-full max-w-md md:-translate-x-8 lg:-translate-x-16 relative z-10 pt-2 md:pt-4 flex flex-col h-full max-h-[620px] justify-between">
             <div className="text-center mb-4">
               <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#054425]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Sign Up</h2>
               <div className="flex items-center justify-center gap-3 mt-3">
@@ -236,6 +353,13 @@ const VendorRegister = () => {
               </span>
             </div>
 
+            {error && (
+              <div className="mb-3 p-2 bg-red-50 text-red-600 rounded-xl text-[10px] sm:text-[11px] font-semibold border border-red-100 flex items-center gap-2 shrink-0">
+                <span className="text-xs">⚠️</span>
+                {error}
+              </div>
+            )}
+
             {/* Form body */}
             <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between">
               <div className="flex-1 relative pb-4">
@@ -254,44 +378,98 @@ const VendorRegister = () => {
                       <div className="space-y-3 font-sans">
                         <div>
                           <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Full Name *</label>
-                          <input type="text" placeholder="e.g. Trisha Mishra" required className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" />
+                          <input 
+                            type="text" 
+                            placeholder="e.g. Trisha Mishra" 
+                            required 
+                            value={formData.fullName}
+                            onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                            className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
+                          />
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Email Address *</label>
-                          <input type="email" placeholder="e.g. seller@sadabharat.com" required className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" />
+                          <input 
+                            type="email" 
+                            placeholder="e.g. seller@sadabharat.com" 
+                            required 
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
+                          />
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Mobile Number *</label>
-                          <input type="tel" placeholder="e.g. +91 9876543210" required className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" />
+                          <input 
+                            type="tel" 
+                            placeholder="e.g. 9876543210" 
+                            required 
+                            value={formData.mobile}
+                            onChange={(e) => setFormData({ ...formData, mobile: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                            className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
+                          />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Password *</label>
-                            <input type="password" placeholder="••••••" required className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" />
+                            <input 
+                              type="password" 
+                              placeholder="••••••" 
+                              required 
+                              value={formData.password}
+                              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                              className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
+                            />
                           </div>
                           <div>
                             <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Confirm *</label>
-                            <input type="password" placeholder="••••••" required className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" />
+                            <input 
+                              type="password" 
+                              placeholder="••••••" 
+                              required 
+                              value={formData.confirmPassword}
+                              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                              className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
+                            />
                           </div>
                         </div>
                       </div>
                     )}
-
+ 
                     {/* Step 2: Business Info */}
                     {currentStep === 2 && (
                       <div className="space-y-3 font-sans">
                         <div>
                           <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Business Name *</label>
-                          <input type="text" placeholder="e.g. Herbal Essence Store" required className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" />
+                          <input 
+                            type="text" 
+                            placeholder="e.g. Herbal Essence Store" 
+                            required 
+                            value={formData.businessName}
+                            onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                            className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
+                          />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">GST Number *</label>
-                            <input type="text" placeholder="22AAAAA0000A1Z5" required className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400 uppercase" />
+                            <input 
+                              type="text" 
+                              placeholder="22AAAAA0000A1Z5" 
+                              required 
+                              value={formData.gstNumber}
+                              onChange={(e) => setFormData({ ...formData, gstNumber: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15) })}
+                              className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400 uppercase" 
+                            />
                           </div>
                           <div>
                             <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Business Type *</label>
-                            <select required className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-650 cursor-pointer">
+                            <select 
+                              required 
+                              value={formData.businessType}
+                              onChange={(e) => setFormData({ ...formData, businessType: e.target.value })}
+                              className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-650 cursor-pointer"
+                            >
                               <option value="">Select Type</option>
                               <option value="Proprietorship">Proprietorship</option>
                               <option value="Partnership">Partnership</option>
@@ -301,74 +479,147 @@ const VendorRegister = () => {
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Business Address *</label>
-                          <input type="text" placeholder="e.g. 101, Green Avenue" required className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" />
+                          <input 
+                            type="text" 
+                            placeholder="e.g. 101, Green Avenue" 
+                            required 
+                            value={formData.businessAddress}
+                            onChange={(e) => setFormData({ ...formData, businessAddress: e.target.value })}
+                            className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
+                          />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">City *</label>
-                            <input type="text" placeholder="e.g. Mumbai" required className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" />
+                            <input 
+                              type="text" 
+                              placeholder="e.g. Mumbai" 
+                              required 
+                              value={formData.city}
+                              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                              className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
+                            />
                           </div>
                           <div>
                             <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">State *</label>
-                            <input type="text" placeholder="e.g. Maharashtra" required className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" />
+                            <input 
+                              type="text" 
+                              placeholder="e.g. Maharashtra" 
+                              required 
+                              value={formData.state}
+                              onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                              className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
+                            />
                           </div>
                         </div>
                       </div>
                     )}
-
+ 
                     {/* Step 3: Bank Details */}
                     {currentStep === 3 && (
                       <div className="space-y-3 font-sans">
                         <div>
                           <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Account Holder Name *</label>
-                          <input type="text" placeholder="e.g. Trisha Mishra" required className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" />
+                          <input 
+                            type="text" 
+                            placeholder="e.g. Trisha Mishra" 
+                            required 
+                            value={formData.accountHolderName}
+                            onChange={(e) => setFormData({ ...formData, accountHolderName: e.target.value })}
+                            className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
+                          />
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Bank Name *</label>
-                          <input type="text" placeholder="e.g. HDFC Bank" required className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" />
+                          <input 
+                            type="text" 
+                            placeholder="e.g. HDFC Bank" 
+                            required 
+                            value={formData.bankName}
+                            onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
+                            className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
+                          />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Account Number *</label>
-                            <input type="text" placeholder="50100234567890" required className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" />
+                            <input 
+                              type="text" 
+                              placeholder="50100234567890" 
+                              required 
+                              value={formData.accountNumber}
+                              onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value.replace(/\D/g, '').slice(0, 18) })}
+                              className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
+                            />
                           </div>
                           <div>
                             <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">IFSC Code *</label>
-                            <input type="text" placeholder="HDFC0001234" required className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400 uppercase" />
+                            <input 
+                              type="text" 
+                              placeholder="HDFC0001234" 
+                              required 
+                              value={formData.ifscCode}
+                              onChange={(e) => setFormData({ ...formData, ifscCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11) })}
+                              className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400 uppercase" 
+                            />
                           </div>
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">UPI ID (Optional)</label>
-                          <input type="text" placeholder="e.g. owner@okaxis" className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" />
+                          <input 
+                            type="text" 
+                            placeholder="e.g. owner@okaxis" 
+                            value={formData.upiId}
+                            onChange={(e) => setFormData({ ...formData, upiId: e.target.value })}
+                            className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
+                          />
                         </div>
                       </div>
                     )}
-
+ 
                     {/* Step 4: Store Info */}
                     {currentStep === 4 && (
                       <div className="space-y-3 font-sans">
                         <div>
                           <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Store Name *</label>
-                          <input type="text" placeholder="e.g. Herbal Aura" required className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" />
+                          <input 
+                            type="text" 
+                            placeholder="e.g. Herbal Aura" 
+                            required 
+                            value={formData.storeName}
+                            onChange={(e) => setFormData({ ...formData, storeName: e.target.value })}
+                            className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
+                          />
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Store Description *</label>
-                          <textarea rows="2" placeholder="Tell customers about your brand..." required className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400 resize-none"></textarea>
+                          <textarea 
+                            rows="2" 
+                            placeholder="Tell customers about your brand..." 
+                            required 
+                            value={formData.storeDescription}
+                            onChange={(e) => setFormData({ ...formData, storeDescription: e.target.value })}
+                            className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400 resize-none"
+                          ></textarea>
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-gray-700 mb-2 uppercase tracking-wide">Product Categories</label>
-                          <div className="grid grid-cols-2 gap-2">
-                            {['Hair Care', 'Skin Care', 'Wellness', 'Soaps'].map(cat => (
-                              <label key={cat} className="flex items-center gap-2 cursor-pointer p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors select-none">
-                                <input type="checkbox" className="w-3.5 h-3.5 text-[#054425] rounded focus:ring-[#054425] accent-[#054425]" />
-                                <span className="text-[11px] text-gray-750 font-bold">{cat}</span>
-                              </label>
-                            ))}
-                          </div>
+                          <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Product Category *</label>
+                          <select 
+                            required
+                            value={formData.categories[0] || ""}
+                            onChange={(e) => setFormData({ ...formData, categories: e.target.value ? [e.target.value] : [] })}
+                            className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-750 cursor-pointer"
+                          >
+                            <option value="">Select Category</option>
+                            <option value="Hair Care">Hair Care</option>
+                            <option value="Skin Care">Skin Care</option>
+                            <option value="Wellness">Wellness</option>
+                            <option value="Soaps">Soaps</option>
+                          </select>
                         </div>
                       </div>
                     )}
-
+ 
                     {/* Step 5: Documents */}
                     {currentStep === 5 && (
                       <div className="space-y-3 font-sans">
@@ -380,14 +631,26 @@ const VendorRegister = () => {
                            <p className="text-[11px] font-bold text-gray-900 mb-0.5">Click to upload business documents</p>
                            <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">PDF, JPG, PNG up to 10MB</span>
                         </div>
-
+ 
                         <div className="space-y-2 py-2">
                           <label className="flex items-start gap-2.5 cursor-pointer select-none">
-                            <input type="checkbox" required className="mt-0.5 w-3.5 h-3.5 text-[#054425] rounded focus:ring-[#054425] accent-[#054425]" />
+                            <input 
+                              type="checkbox" 
+                              required 
+                              checked={formData.termsAccepted}
+                              onChange={(e) => setFormData({ ...formData, termsAccepted: e.target.checked })}
+                              className="mt-0.5 w-3.5 h-3.5 text-[#054425] rounded focus:ring-[#054425] accent-[#054425]" 
+                            />
                             <span className="text-[11px] text-gray-600 leading-snug font-semibold">I agree to the <a href="#" className="text-[#054425] font-bold hover:underline">Seller Terms & Conditions</a></span>
                           </label>
                           <label className="flex items-start gap-2.5 cursor-pointer select-none">
-                            <input type="checkbox" required className="mt-0.5 w-3.5 h-3.5 text-[#054425] rounded focus:ring-[#054425] accent-[#054425]" />
+                            <input 
+                              type="checkbox" 
+                              required 
+                              checked={formData.policiesAccepted}
+                              onChange={(e) => setFormData({ ...formData, policiesAccepted: e.target.checked })}
+                              className="mt-0.5 w-3.5 h-3.5 text-[#054425] rounded focus:ring-[#054425] accent-[#054425]" 
+                            />
                             <span className="text-[11px] text-gray-600 leading-snug font-semibold">I agree to the <a href="#" className="text-[#054425] font-bold hover:underline">Marketplace Policies</a></span>
                           </label>
                         </div>

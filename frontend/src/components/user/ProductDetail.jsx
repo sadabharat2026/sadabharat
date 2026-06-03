@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiStar, FiHeart, FiShare2, FiShoppingCart, FiZap,
   FiShield, FiTruck, FiRefreshCw, FiCheckCircle, FiChevronRight, FiTag, FiX, FiMessageSquare,
-  FiActivity, FiTarget, FiFeather, FiDroplet
+  FiActivity, FiTarget, FiFeather, FiDroplet, FiMinus, FiPlus
 } from 'react-icons/fi';
 import { useShop } from '../../context/ShopContext';
 import api from '../../utils/api';
@@ -308,14 +308,19 @@ const ProductDetail = () => {
     );
   }
 
-  const variants = product ? (product.variants || (product.name.toLowerCase().includes('milk') || product.name.toLowerCase().includes('bhringraj') ? [
+  const isCustomProduct = product && String(product._id).startsWith('custom-prod-');
+  const variants = product ? (product.variants || (isCustomProduct ? [] : (product.name.toLowerCase().includes('milk') || product.name.toLowerCase().includes('bhringraj') ? [
     { size: '100 ml', price: product.price, oldPrice: product.oldPrice },
     { size: '200 ml', price: Math.round(product.price * 1.8), oldPrice: Math.round((product.oldPrice || product.price) * 1.8) }
   ] : (Array.isArray(product.sizes) && product.sizes.length > 0 ? product.sizes.map(s => ({ size: s, price: product.price, oldPrice: product.oldPrice })) : [
     { size: '100 ml', price: product.price, oldPrice: product.oldPrice },
     { size: '200 ml', price: Math.round(product.price * 1.8), oldPrice: Math.round((product.oldPrice || product.price) * 1.8) },
     { size: '300 ml', price: Math.round(product.price * 2.5), oldPrice: Math.round((product.oldPrice || product.price) * 2.5) }
-  ]))) : [];
+  ])))) : [];
+
+  const parsedIngredients = product.ingredients
+    ? product.ingredients.split(',').map(s => s.trim()).filter(Boolean)
+    : ['Bhringraj', 'Amla', 'Coconut Oil', 'Brahmi'];
 
   const currentSize = selectedSize || (variants.length > 0 ? variants[0].size : null);
   const selectedVariant = variants.find(v => v.size === currentSize) || variants[0] || product;
@@ -472,17 +477,12 @@ const ProductDetail = () => {
                   <div>
                     <h3 className="text-[13px] font-bold text-gray-900 mb-4">Key Ingredients</h3>
                     <div className="space-y-3">
-                      {[
-                        { name: 'Bhringraj', fallbackImg: 'https://cdn-icons-png.flaticon.com/512/1892/1892695.png' },
-                        { name: 'Amla', fallbackImg: 'https://cdn-icons-png.flaticon.com/512/1892/1892695.png' },
-                        { name: 'Coconut Oil', fallbackImg: 'https://cdn-icons-png.flaticon.com/512/1892/1892695.png' },
-                        { name: 'Brahmi', fallbackImg: 'https://cdn-icons-png.flaticon.com/512/1892/1892695.png' }
-                      ].map((ing, idx) => (
+                      {parsedIngredients.map((ing, idx) => (
                         <div key={idx} className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-[#F9F7F3] flex items-center justify-center text-sm shadow-inner overflow-hidden border border-gray-50">
-                            <img src={ing.fallbackImg} alt={ing.name} className="w-5 h-5 object-contain" />
+                            <img src="https://cdn-icons-png.flaticon.com/512/1892/1892695.png" alt={ing} className="w-5 h-5 object-contain" style={{ filter: 'hue-rotate(60deg) brightness(0.8)' }} />
                           </div>
-                          <span className="text-[11px] font-semibold text-gray-700">{ing.name}</span>
+                          <span className="text-[11px] font-semibold text-gray-700">{ing}</span>
                         </div>
                       ))}
                     </div>
@@ -490,6 +490,31 @@ const ProductDetail = () => {
                   <button className="text-[10px] font-bold text-[#054425] hover:underline self-start mt-4">View full ingredients</button>
                 </div>
               </div>
+
+              {(product.dosage || product.disclaimer) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border border-gray-100 rounded-md bg-white shadow-sm overflow-hidden mt-2">
+                  {product.dosage && (
+                    <div className="p-5 border-b md:border-b-0 md:border-r border-gray-100 bg-[#FAF9F5]">
+                      <h3 className="text-[13px] font-bold text-[#054425] mb-2.5 flex items-center gap-1.5 font-serif uppercase tracking-wider">
+                        Dosage & Guidelines
+                      </h3>
+                      <p className="text-[11px] text-gray-700 leading-relaxed font-sans font-medium">
+                        {product.dosage}
+                      </p>
+                    </div>
+                  )}
+                  {product.disclaimer && (
+                    <div className="p-5 bg-red-50/30">
+                      <h3 className="text-[13px] font-bold text-red-800 mb-2.5 flex items-center gap-1.5 font-serif uppercase tracking-wider">
+                        Disclaimer Guidelines
+                      </h3>
+                      <p className="text-[11px] text-red-900/90 leading-relaxed font-sans font-medium">
+                        {product.disclaimer}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Bottom Features */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 border border-gray-100 rounded-md p-5 bg-white shadow-sm mt-2">
@@ -530,6 +555,11 @@ const ProductDetail = () => {
                   <span className="bg-[#E6F4EA] text-[#054425] px-1.5 py-0.5 rounded text-[9px] font-bold flex items-center gap-1 ml-1">
                     <FiCheckCircle size={9} /> Bestseller
                   </span>
+                  {product.prescriptionRequired && (
+                    <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded text-[9px] font-bold flex items-center gap-1 border border-red-200 ml-1">
+                      ⚠️ Prescription Required
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-baseline gap-3 mb-0">
@@ -664,7 +694,7 @@ const ProductDetail = () => {
               </div>
 
               {/* Delivery Features */}
-              <div className="grid grid-cols-3 gap-2 sm:gap-4 border border-gray-100 rounded-xl p-3 sm:p-5 bg-white shadow-sm mt-6">
+              <div className={`grid ${product.codAvailable ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3'} gap-2 sm:gap-4 border border-gray-100 rounded-xl p-3 sm:p-5 bg-white shadow-sm mt-6`}>
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-1.5 sm:gap-3 text-center sm:text-left">
                   <div className="w-8 h-8 rounded-md bg-gray-50 flex items-center justify-center text-gray-600 shrink-0">
                     <FiTruck size={14} />
@@ -674,15 +704,43 @@ const ProductDetail = () => {
                     <p className="text-[8px] sm:text-[9px] text-gray-500 mt-0.5">On orders ₹499+</p>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-1.5 sm:gap-3 text-center sm:text-left">
-                  <div className="w-8 h-8 rounded-md bg-gray-50 flex items-center justify-center text-gray-600 shrink-0">
-                    <FiRefreshCw size={14} />
+
+                {product.noRefund ? (
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-1.5 sm:gap-3 text-center sm:text-left">
+                    <div className="w-8 h-8 rounded-md bg-red-50 text-red-500 border border-red-100 flex items-center justify-center shrink-0">
+                      <FiRefreshCw size={14} className="rotate-45" />
+                    </div>
+                    <div className="mt-0 sm:mt-1">
+                      <p className="text-[9px] sm:text-[10px] font-bold text-red-600 leading-tight">Non-Refundable</p>
+                      <p className="text-[8px] sm:text-[9px] text-gray-500 mt-0.5">Hygiene Guidelines</p>
+                    </div>
                   </div>
-                  <div className="mt-0 sm:mt-1">
-                    <p className="text-[9px] sm:text-[10px] font-bold text-gray-900 leading-tight">7 Days Return</p>
-                    <p className="text-[8px] sm:text-[9px] text-gray-500 mt-0.5">Easy Returns</p>
+                ) : (
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-1.5 sm:gap-3 text-center sm:text-left">
+                    <div className="w-8 h-8 rounded-md bg-gray-50 flex items-center justify-center text-gray-600 shrink-0">
+                      <FiRefreshCw size={14} />
+                    </div>
+                    <div className="mt-0 sm:mt-1">
+                      <p className="text-[9px] sm:text-[10px] font-bold text-gray-900 leading-tight">7 Days Return</p>
+                      <p className="text-[8px] sm:text-[9px] text-gray-500 mt-0.5">Easy Returns</p>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {product.codAvailable && (
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-1.5 sm:gap-3 text-center sm:text-left">
+                    <div className="w-8 h-8 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                      </svg>
+                    </div>
+                    <div className="mt-0 sm:mt-1">
+                      <p className="text-[9px] sm:text-[10px] font-bold text-emerald-700 leading-tight">COD Available</p>
+                      <p className="text-[8px] sm:text-[9px] text-gray-500 mt-0.5">Pay on Delivery</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-1.5 sm:gap-3 text-center sm:text-left">
                   <div className="w-8 h-8 rounded-md bg-gray-50 flex items-center justify-center text-gray-600 shrink-0">
                     <FiShield size={14} />
