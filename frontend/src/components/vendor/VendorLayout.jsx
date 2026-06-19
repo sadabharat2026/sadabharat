@@ -14,8 +14,18 @@ const VendorLayout = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    try {
+      const fcmToken = localStorage.getItem('fcm_token_web');
+      if (fcmToken) {
+        await api.post('/notifications/remove-fcm-token', { token: fcmToken });
+      }
+    } catch (err) {
+      console.error('Failed to remove FCM token on vendor logout:', err);
+    }
     localStorage.removeItem('vendor_auth');
+    localStorage.removeItem('vendor_token');
+    localStorage.removeItem('fcm_token_web');
     if (window.showVendorToast) {
       window.showVendorToast('Logged out successfully!', 'success');
     }

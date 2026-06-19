@@ -9,6 +9,8 @@ import {
 import { useShop } from '../../context/ShopContext';
 
 import api from '../../utils/api';
+import ChatWindow from '../shared/ChatWindow';
+import { getConversationId } from '../../services/chatService';
 
 import ConsultationCTA from './ConsultationCTA';
 import ProductCard from './ProductCard';
@@ -211,6 +213,15 @@ const ProductDetail = () => {
   const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
   const [selectedPolicyTab, setSelectedPolicyTab] = useState('Genuine');
   const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  const handleChatClick = () => {
+    if (!isAuthenticated || !user) {
+      navigate('/login');
+      return;
+    }
+    setIsChatOpen(true);
+  };
 
   const fetchAvailableCoupons = async () => {
     try {
@@ -535,7 +546,7 @@ const ProductDetail = () => {
 
               {/* Consultation CTA */}
               <div className="mt-2">
-                <ConsultationCTA />
+                <ConsultationCTA onChatClick={handleChatClick} />
               </div>
             </div>
           </div>
@@ -693,7 +704,57 @@ const ProductDetail = () => {
                     Buy Now
                   </button>
                 )}
+
+                {/* Chat Button */}
+                <button
+                  onClick={handleChatClick}
+                  className="w-full mt-2 h-[40px] flex items-center justify-center gap-2 border border-gray-300 text-gray-600 rounded-md text-[13px] font-bold hover:bg-gray-50 transition-colors tracking-wide"
+                >
+                  <FiMessageCircle size={15} /> {product.vendor ? 'Ask Vendor a Question' : 'Chat with Support'}
+                </button>
               </div>
+
+              {/* Chat Modal */}
+              <AnimatePresence>
+                {isChatOpen && user && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-0 sm:p-4"
+                    onClick={() => setIsChatOpen(false)}
+                  >
+                    <motion.div
+                      initial={{ y: 60, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: 60, opacity: 0 }}
+                      className="w-full sm:max-w-md h-[85dvh] sm:h-[560px] flex flex-col min-h-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ChatWindow
+                        conversationId={product.vendor ? getConversationId.userVendor(user._id, typeof product.vendor === 'string' ? product.vendor : product.vendor._id) : getConversationId.userAdmin(user._id)}
+                        metadata={product.vendor ? {
+                          type: 'user-vendor',
+                          userId: user._id,
+                          userName: user.name || user.fullName || 'User',
+                          vendorId: typeof product.vendor === 'string' ? product.vendor : product.vendor._id,
+                          vendorName: product.vendor?.storeName || product.vendor?.fullName || 'Vendor',
+                          productId: product._id,
+                        } : {
+                          type: 'user-admin',
+                          userId: user._id,
+                          userName: user.name || user.fullName || 'User',
+                          productId: product._id,
+                        }}
+                        currentUser={{ id: user._id, name: user.name || user.fullName || 'User', role: 'user' }}
+                        recipientName={product.vendor ? (product.vendor?.storeName || product.vendor?.fullName || 'Vendor') : 'Sada Bharat Support'}
+                        onClose={() => setIsChatOpen(false)}
+                        className="h-full flex-1 border-0 sm:rounded-2xl rounded-t-2xl shadow-none"
+                      />
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Delivery Features */}
               <div className={`grid ${product.codAvailable ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3'} gap-2 sm:gap-4 border border-gray-100 rounded-xl p-3 sm:p-5 bg-white shadow-sm mt-6`}>

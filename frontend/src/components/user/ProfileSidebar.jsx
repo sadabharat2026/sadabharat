@@ -3,13 +3,17 @@ import { useShop } from '../../context/ShopContext';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   FiUser, FiShoppingBag, FiMapPin, FiHeart, FiStar, FiTag, 
-  FiBell, FiLock, FiSettings, FiLogOut, FiCheck
+  FiBell, FiLock, FiSettings, FiLogOut, FiCheck, FiMessageSquare
 } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
+import ChatWindow from '../shared/ChatWindow';
+import { getConversationId } from '../../services/chatService';
 
 const ProfileSidebar = ({ activeTab = 'profile' }) => {
   const { user, logout } = useShop();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isSupportChatOpen, setIsSupportChatOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (window.innerWidth < 1024) {
@@ -85,6 +89,13 @@ const ProfileSidebar = ({ activeTab = 'profile' }) => {
           })}
           <div className="mt-2 pt-2 border-t border-gray-50">
             <button 
+              onClick={() => setIsSupportChatOpen(true)}
+              className="w-full flex items-center gap-4 px-4 py-2.5 rounded-lg text-[13px] font-bold text-gray-600 hover:bg-white/50 hover:text-gray-900 transition-colors"
+            >
+              <FiMessageSquare className="w-4 h-4" />
+              Contact Support
+            </button>
+            <button 
               onClick={handleLogout}
               className="w-full flex items-center gap-4 px-4 py-2.5 rounded-lg text-[13px] font-bold text-red-500 hover:bg-red-50 transition-colors"
             >
@@ -95,6 +106,40 @@ const ProfileSidebar = ({ activeTab = 'profile' }) => {
         </div>
 
       </div>
+
+      {/* Support Chat Modal */}
+      <AnimatePresence>
+        {isSupportChatOpen && user && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[999] bg-black/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-0 sm:p-4"
+            onClick={() => setIsSupportChatOpen(false)}
+          >
+            <motion.div
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
+              className="w-full sm:max-w-md h-[85dvh] sm:h-[560px] flex flex-col min-h-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ChatWindow
+                conversationId={getConversationId.userAdmin(user._id)}
+                metadata={{
+                  type: 'user-admin',
+                  userId: user._id,
+                  userName: user.name || user.fullName || 'User',
+                }}
+                currentUser={{ id: user._id, name: user.name || user.fullName || 'User', role: 'user' }}
+                recipientName="Sada Bharat Support"
+                onClose={() => setIsSupportChatOpen(false)}
+                className="h-full flex-1 border-0 sm:rounded-2xl rounded-t-2xl shadow-none"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

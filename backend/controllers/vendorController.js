@@ -90,6 +90,22 @@ const loginVendor = async (req, res, next) => {
   }
 };
 
+// @desc    Get vendor profile
+// @route   GET /api/vendors/profile
+// @access  Private/Vendor
+const getVendorProfile = async (req, res, next) => {
+  try {
+    const vendor = await Vendor.findById(req.user._id).select('-password');
+    if (!vendor) {
+      res.status(404);
+      throw new Error('Vendor not found');
+    }
+    res.status(200).json({ success: true, data: { vendor } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get all pending vendors requests
 // @route   GET /api/vendors/pending
 // @access  Private/Admin
@@ -178,6 +194,20 @@ const blockVendor = async (req, res, next) => {
     vendor.isBlocked = true;
     await vendor.save();
 
+    try {
+      await sendNotificationToUser(
+        vendor._id,
+        'vendor',
+        {
+          title: 'Account Suspended',
+          body: 'Your seller account has been temporarily suspended. Please contact support.'
+        },
+        'alert'
+      );
+    } catch (notifErr) {
+      console.error('FCM: Error sending vendor block notification:', notifErr);
+    }
+
     res.status(200).json({
       success: true,
       message: 'Vendor blocked successfully'
@@ -200,6 +230,20 @@ const unblockVendor = async (req, res, next) => {
 
     vendor.isBlocked = false;
     await vendor.save();
+
+    try {
+      await sendNotificationToUser(
+        vendor._id,
+        'vendor',
+        {
+          title: 'Account Reactivated',
+          body: 'Your seller account has been reactivated. You can now log in.'
+        },
+        'success'
+      );
+    } catch (notifErr) {
+      console.error('FCM: Error sending vendor unblock notification:', notifErr);
+    }
 
     res.status(200).json({
       success: true,
@@ -441,5 +485,6 @@ module.exports = {
   unblockVendor,
   getVendorEarnings,
   getVendorReviews,
-  getVendorDashboardStats
+  getVendorDashboardStats,
+  getVendorProfile
 };

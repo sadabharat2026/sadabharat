@@ -94,9 +94,15 @@ async function registerFCMToken(forceUpdate = false) {
   }
 }
 
+let unsubscribeForeground = null;
+
 // Setup foreground notification handler
 function setupForegroundNotificationHandler(handler) {
-  onMessage(messaging, (payload) => {
+  if (unsubscribeForeground) {
+    unsubscribeForeground();
+  }
+
+  unsubscribeForeground = onMessage(messaging, (payload) => {
     console.log('FCM: Foreground message received:', payload);
     
     // Trigger standard Web notification if permission is granted
@@ -104,6 +110,7 @@ function setupForegroundNotificationHandler(handler) {
       new Notification(payload.notification.title, {
         body: payload.notification.body,
         icon: payload.notification.icon || '/logo.png',
+        tag: payload.messageId || 'fcm-foreground-notification',
         data: payload.data
       });
     }
@@ -113,6 +120,8 @@ function setupForegroundNotificationHandler(handler) {
       handler(payload);
     }
   });
+
+  return unsubscribeForeground;
 }
 
 // Initialize push notifications

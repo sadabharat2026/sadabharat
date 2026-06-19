@@ -88,7 +88,7 @@ const HeroCarousel = () => {
                       )}
 
                       {/* Main Heading */}
-                      {banner.heading && (
+                      {(banner.heading || banner.title) && (
                       <h2 
                         className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-[64px] mb-2 md:mb-3"
                         style={{ 
@@ -98,27 +98,27 @@ const HeroCarousel = () => {
                           letterSpacing: '-1px', 
                           color: '#0B3D1F' 
                         }}
-                        dangerouslySetInnerHTML={{ __html: banner.heading }}
+                        dangerouslySetInnerHTML={{ __html: banner.heading || banner.title }}
                       />
                       )}
 
                       {/* Subtitle */}
-                      {banner.subtitle && (
+                      {(banner.subtitle || banner.description) && (
                       <p 
                         className="text-[10px] sm:text-xs md:text-sm lg:text-base text-gray-600 mb-3 md:mb-5 leading-relaxed"
                         style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 400 }}
-                        dangerouslySetInnerHTML={{ __html: banner.subtitle }}
+                        dangerouslySetInnerHTML={{ __html: banner.subtitle || banner.description }}
                       />
                       )}
 
                       {/* Button */}
-                      {banner.buttonText && (
+                      {(banner.buttonText || banner.btnText) && (
                       <a
                         href={banner.link || '#'}
                         className="inline-flex items-center gap-2 bg-[#054425] hover:bg-[#1E4D2B] text-white text-[10px] sm:text-xs md:text-sm font-semibold px-4 sm:px-5 md:px-6 py-2 sm:py-2.5 md:py-3 rounded-lg transition-all duration-300 hover:scale-105 active:scale-95 shadow-md"
                         style={{ fontFamily: "'Poppins', sans-serif" }}
                       >
-                        {banner.buttonText}
+                        {banner.buttonText || banner.btnText}
                         <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                         </svg>

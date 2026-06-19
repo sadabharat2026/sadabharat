@@ -216,6 +216,7 @@ const AdminRoutes = () => (
       <Route path="/reviews" element={<AdminReviews />} />
       <Route path="/notifications" element={<AdminNotifications />} />
       <Route path="/support" element={<AdminSupport />} />
+      <Route path="/vendor-chats" element={<AdminSupport />} />
       <Route path="/logistics" element={<AdminLogistics />} />
       <Route path="/locations" element={<AdminLocations />} />
       <Route path="/policies" element={<AdminPolicies />} />

@@ -127,18 +127,6 @@ const saveFCMToken = async (req, res, next) => {
         recipient.fcmTokens = recipient.fcmTokens.slice(-10);
       }
       await recipient.save();
-
-      // Trigger a welcome notification to verify push setup is working instantly
-      try {
-        const { sendPushNotification } = require('../services/firebaseAdmin');
-        await sendPushNotification([token], {
-          title: 'Notifications Enabled 🌿',
-          body: `Welcome back, ${recipient.name || recipient.fullName || 'User'}! Push notifications are successfully configured.`,
-          data: { link: '/' }
-        });
-      } catch (welcomeErr) {
-        console.warn('FCM: Welcome confirmation notification skipped:', welcomeErr.message);
-      }
     }
 
     res.status(200).json({ success: true, message: 'FCM token saved successfully' });
@@ -167,6 +155,27 @@ const removeFCMToken = async (req, res, next) => {
   }
 };
 
+// POST /api/notifications/chat
+const sendChatNotification = async (req, res, next) => {
+  try {
+    const { recipientId, recipientRole, title, message } = req.body;
+    const { sendNotificationToUser } = require('../utils/pushNotificationHelper');
+    
+    await sendNotificationToUser(
+      recipientId,
+      recipientRole,
+      {
+        title,
+        body: message
+      },
+      'info'
+    );
+    res.status(200).json({ success: true, message: 'Chat notification triggered' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getMyNotifications,
   markAsRead,
@@ -175,5 +184,6 @@ module.exports = {
   createNotification,
   deleteNotification,
   saveFCMToken,
-  removeFCMToken
+  removeFCMToken,
+  sendChatNotification
 };

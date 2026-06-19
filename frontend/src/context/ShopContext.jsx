@@ -370,10 +370,27 @@ export const ShopProvider = ({ children }) => {
     return wishlist.some(item => item._id === productId);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      const fcmToken = localStorage.getItem('fcm_token_web');
+      if (fcmToken) {
+        await api.post('/notifications/remove-fcm-token', { token: fcmToken });
+      }
+    } catch (err) {
+      console.error('FCM: Failed to remove token on logout', err);
+    }
+
     const isAdminScope = window.location.pathname.startsWith('/admin');
-    const tokenKey = isAdminScope ? 'admin_token' : 'customer_token';
+    const isVendorScope = window.location.pathname.startsWith('/vendor');
+    
+    let tokenKey = 'customer_token';
+    if (isAdminScope) tokenKey = 'admin_token';
+    if (isVendorScope) tokenKey = 'vendor_token';
+    
     localStorage.removeItem(tokenKey);
+    localStorage.removeItem('fcm_token_web');
+    localStorage.removeItem('vendor_auth');
+    localStorage.removeItem('fcm_token_web');
     setIsAuthenticated(false);
     setUser(null);
   };

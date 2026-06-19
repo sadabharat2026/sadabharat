@@ -4,6 +4,10 @@ import { AnimatePresence } from 'framer-motion';
 import { RMAModal } from './UserOrders';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../utils/api';
+import { useShop } from '../../context/ShopContext';
+import ChatWindow from '../shared/ChatWindow';
+import { getConversationId } from '../../services/chatService';
+import { motion } from 'framer-motion';
 
 const TrackOrder = () => {
   const navigate = useNavigate();
@@ -13,6 +17,17 @@ const TrackOrder = () => {
   const [loading, setLoading] = useState(true);
   const [showRmaModal, setShowRmaModal] = useState(false);
   const [isBankOnly, setIsBankOnly] = useState(false);
+  
+  const { user, isAuthenticated } = useShop();
+  const [isSupportChatOpen, setIsSupportChatOpen] = useState(false);
+
+  const handleSupportClick = () => {
+    if (!isAuthenticated || !user) {
+      navigate('/login');
+      return;
+    }
+    setIsSupportChatOpen(true);
+  };
 
   useEffect(() => {
     if (orderId) {
@@ -229,7 +244,10 @@ const TrackOrder = () => {
                 <div className="bg-[#F4F8F5] border border-[#054425]/10 rounded-lg shadow-sm p-4 md:p-5 text-center">
                     <h4 className="text-xs md:text-sm font-bold font-['Poppins'] text-[#054425] mb-1.5 tracking-normal">Need Help?</h4>
                     <p className="text-[10px] md:text-[11px] font-['Poppins'] text-gray-600 mb-3 leading-relaxed">If you have any questions regarding your order, our support team is here for you.</p>
-                    <button className="px-4 py-1.5 bg-white text-[#054425] border border-[#054425]/20 rounded text-[10px] md:text-xs font-semibold font-['Poppins'] hover:bg-gray-50 transition-colors">
+                    <button 
+                        onClick={handleSupportClick}
+                        className="px-4 py-1.5 bg-white text-[#054425] border border-[#054425]/20 rounded text-[10px] md:text-xs font-semibold font-['Poppins'] hover:bg-gray-50 transition-colors"
+                    >
                         Contact Support
                     </button>
                 </div>
@@ -237,6 +255,40 @@ const TrackOrder = () => {
 
         </div>
       </div>
+
+      {/* Support Chat Modal */}
+      <AnimatePresence>
+        {isSupportChatOpen && user && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-0 sm:p-4"
+            onClick={() => setIsSupportChatOpen(false)}
+          >
+            <motion.div
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
+              className="w-full sm:max-w-md h-[85dvh] sm:h-[560px] bg-white rounded-t-2xl sm:rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ChatWindow
+                conversationId={getConversationId.userAdmin(user._id)}
+                metadata={{
+                  type: 'user-admin',
+                  userId: user._id,
+                  userName: user.name || user.fullName || 'User',
+                }}
+                currentUser={{ id: user._id, name: user.name || user.fullName || 'User', role: 'user' }}
+                recipientName="Sada Bharat Support"
+                onClose={() => setIsSupportChatOpen(false)}
+                className="h-full flex-1 border-0 rounded-none shadow-none"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -16,7 +16,7 @@ const AdminBlogs = () => {
     const fetchBlogs = async () => {
         try {
             setLoading(true);
-            const res = await api.get('/blogs/admin');
+            const res = await api.get('/blogs');
             setBlogs(res.data.data.blogs || []);
         } catch (err) {
             console.error('Failed to fetch blogs:', err);

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiPackage, FiTruck, FiCheckCircle, FiClock, FiBox, FiX, FiUploadCloud, FiImage, FiPlusCircle, FiCreditCard, FiDownload } from 'react-icons/fi';
+import { FiPackage, FiTruck, FiCheckCircle, FiClock, FiBox, FiX, FiUploadCloud, FiImage, FiPlusCircle, FiCreditCard, FiDownload, FiMessageCircle } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { useShop } from '../../context/ShopContext';
 
 import api from '../../utils/api';
-
 import ProfileSidebar from './ProfileSidebar';
+import ChatWindow from '../shared/ChatWindow';
+import { getConversationId } from '../../services/chatService';
 
 export const RMAModal = ({ order, onClose, isBankOnly = false }) => {
 
@@ -270,8 +271,8 @@ const UserOrders = () => {
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [showRmaModal, setShowRmaModal] = useState(false);
     const [isBankOnly, setIsBankOnly] = useState(false);
-
-
+    const [chatOrder, setChatOrder] = useState(null); // for vendor chat
+    const { user } = useShop();
     useEffect(() => {
         const fetchOrders = async () => {
             try {
@@ -384,9 +385,16 @@ const UserOrders = () => {
                                         <div className="text-right">
                                             <p className="text-xs text-gray-500 font-medium">Total</p>
                                             <p className="text-sm font-bold text-[#054425]">₹{order.totalPrice}</p>
-                                        </div>
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <button
+                                        </div>                                        <div className="flex items-center gap-2">
+                                             {user && (
+                                                <button
+                                                    onClick={() => setChatOrder(order)}
+                                                    className="bg-white border border-[#054425] text-[#054425] px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#EAF0EC] transition-all flex items-center gap-1 shadow-sm"
+                                                >
+                                                    <FiMessageCircle size={13} /> {order.orderItems?.some(i => i.vendor) ? 'Chat Vendor' : 'Chat Support'}
+                                                </button>
+                                            )}
+                                             <button
                                                 onClick={(e) => {
                                                     e.preventDefault();
                                                     import('../../utils/invoiceHelper').then(m => m.generateInvoice(order));
@@ -491,6 +499,52 @@ const UserOrders = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Vendor Chat Modal */}
+            <AnimatePresence>
+                {chatOrder && user && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[999] bg-black/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-0 sm:p-4"
+                        onClick={() => setChatOrder(null)}
+                    >
+                        <motion.div
+                            initial={{ y: 60, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 60, opacity: 0 }}
+                            className="w-full sm:max-w-md h-[85dvh] sm:h-[560px] flex flex-col min-h-0"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <ChatWindow
+                                conversationId={chatOrder.orderItems?.some(i => i.vendor) ? getConversationId.userVendor(
+                                    user._id,
+                                    chatOrder.orderItems?.find(i => i.vendor)?.vendor?._id ||
+                                    chatOrder.orderItems?.find(i => i.vendor)?.vendor
+                                ) : getConversationId.userAdmin(user._id)}
+                                metadata={chatOrder.orderItems?.some(i => i.vendor) ? {
+                                    type: 'user-vendor',
+                                    userId: user._id,
+                                    userName: user.name,
+                                    vendorId: chatOrder.orderItems?.find(i => i.vendor)?.vendor?._id ||
+                                        chatOrder.orderItems?.find(i => i.vendor)?.vendor,
+                                    orderId: chatOrder._id,
+                                } : {
+                                    type: 'user-admin',
+                                    userId: user._id,
+                                    userName: user.name,
+                                    orderId: chatOrder._id,
+                                }}
+                                currentUser={{ id: user._id, name: user.name, role: 'user' }}
+                                recipientName={chatOrder.orderItems?.some(i => i.vendor) ? "Vendor Support" : "Sada Bharat Support"}
+                                onClose={() => setChatOrder(null)}
+                                className="h-full flex-1 border-0 sm:rounded-2xl rounded-t-2xl shadow-none"
+                            />
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

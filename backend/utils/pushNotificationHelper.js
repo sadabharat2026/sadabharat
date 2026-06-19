@@ -19,28 +19,46 @@ async function sendNotificationToUser(recipientId, targetRole, payload, type = '
       title: payload.title,
       message: textBody,
       type: type,
-      targetRole: targetRole === 'admin' ? 'user' : targetRole, // Admin uses User collection
-      targetId: recipientId
+      targetRole: targetRole,
+      targetId: targetRole === 'admin' ? null : recipientId,
+      relatedId: payload.data?.relatedId || null,
+      relatedModel: payload.data?.relatedModel || null
     });
 
     // 2. Fetch FCM tokens from DB
-    let recipient;
-    if (targetRole === 'vendor') {
-      recipient = await Vendor.findById(recipientId);
+    let tokens = [];
+
+    if (targetRole === 'admin') {
+      const admins = await User.find({ role: 'admin' });
+      admins.forEach(admin => {
+        if (admin.fcmTokens) {
+          tokens.push(...admin.fcmTokens);
+        }
+      });
+      if (admins.length === 0) {
+        console.log(`Notification Helper: No admin users found.`);
+        return;
+      }
+    } else if (targetRole === 'vendor') {
+      const recipient = await Vendor.findById(recipientId);
+      if (!recipient) {
+        console.log(`Notification Helper: Vendor ${recipientId} not found.`);
+        return;
+      }
+      tokens = recipient.fcmTokens || [];
     } else {
-      recipient = await User.findById(recipientId);
+      const recipient = await User.findById(recipientId);
+      if (!recipient) {
+        console.log(`Notification Helper: User ${recipientId} not found.`);
+        return;
+      }
+      tokens = recipient.fcmTokens || [];
     }
 
-    if (!recipient) {
-      console.log(`Notification Helper: Recipient ${recipientId} (${targetRole}) not found.`);
-      return;
-    }
-
-    const tokens = recipient.fcmTokens || [];
     const uniqueTokens = [...new Set(tokens)].filter(Boolean);
 
     if (uniqueTokens.length === 0) {
-      console.log(`Notification Helper: No FCM registration tokens found for ${recipient.email || recipient.fullName || recipientId}.`);
+      console.log(`Notification Helper: No FCM registration tokens found for ${targetRole}.`);
       return;
     }
 

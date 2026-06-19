@@ -23,11 +23,11 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message', payload);
   
-  const notificationTitle = payload.notification.title;
+  const notificationTitle = payload.notification ? payload.notification.title : (payload.data?.title || 'New Notification');
   const notificationOptions = {
-    body: payload.notification.body,
-    icon: payload.notification.icon || '/logo.png',
-    data: payload.data
+    body: payload.notification ? payload.notification.body : (payload.data?.body || 'You have a new message.'),
+    icon: payload.notification ? payload.notification.icon : (payload.data?.icon || '/logo.png'),
+    data: payload.data || {}
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);

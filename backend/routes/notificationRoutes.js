@@ -5,7 +5,8 @@ const {
   markAsRead,
   markAllRead,
   saveFCMToken,
-  removeFCMToken
+  removeFCMToken,
+  sendChatNotification
 } = require('../controllers/notificationController');
 const { protect } = require('../middlewares/authMiddleware');
 
@@ -15,5 +16,6 @@ router.patch('/mark-all-read', protect, markAllRead);
 router.patch('/:id/read', protect, markAsRead);
 router.post('/save-fcm-token', protect, saveFCMToken);
 router.post('/remove-fcm-token', protect, removeFCMToken);
+router.post('/chat', protect, sendChatNotification);
 
 module.exports = router;

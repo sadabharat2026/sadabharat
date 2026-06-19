@@ -17,7 +17,7 @@ const notificationSchema = new mongoose.Schema({
   },
   targetRole: {
     type: String,
-    enum: ['vendor', 'user', 'all'],
+    enum: ['admin', 'vendor', 'user', 'all'],
     required: true
   },
   targetId: {
@@ -27,6 +27,15 @@ const notificationSchema = new mongoose.Schema({
   isRead: {
     type: Boolean,
     default: false
+  },
+  relatedId: {
+    type: mongoose.Schema.Types.ObjectId,
+    default: null
+  },
+  relatedModel: {
+    type: String,
+    enum: ['Order', 'Vendor', 'Product', 'User', 'Review', 'SupportTicket', null],
+    default: null
   },
   readBy: [{
     type: mongoose.Schema.Types.ObjectId

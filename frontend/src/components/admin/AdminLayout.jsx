@@ -53,10 +53,37 @@ const AdminLayout = () => {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchAdminNotifications = async () => {
+    try {
+      const { default: api } = await import('../../utils/api');
+      const res = await api.get('/notifications/me');
+      if (res.data?.success) {
+        setNotifications(res.data.data.notifications);
+        setUnreadCount(res.data.data.notifications.filter(n => !n.isRead).length);
+      }
+    } catch (err) {
+      console.error('Failed to fetch admin notifications', err);
+    }
+  };
 
   React.useEffect(() => {
-    // Firebase Push Notifications Removed
-  }, []);
+    if (isAuthenticated) {
+      fetchAdminNotifications();
+      const intervalId = setInterval(fetchAdminNotifications, 60000); // poll every minute
+      return () => clearInterval(intervalId);
+    }
+  }, [isAuthenticated]);
+
+  const handleMarkAllReadHeader = async () => {
+    try {
+      const { default: api } = await import('../../utils/api');
+      await api.patch('/notifications/mark-all-read');
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (err) { /* silently fail */ }
+  };
 
   // Route protection
   if (isAuthLoading) {
@@ -95,7 +122,8 @@ const AdminLayout = () => {
       subItems: [
         { title: 'Existing Vendors', path: '/admin/vendors' },
         { title: 'New Joining Requests', path: '/admin/vendors/pending' },
-        { title: 'Blocked Vendors', path: '/admin/vendors/blocked' }
+        { title: 'Blocked Vendors', path: '/admin/vendors/blocked' },
+        { title: 'Vendor Chats', path: '/admin/vendor-chats' }
       ]
     },
     { 
@@ -124,7 +152,7 @@ const AdminLayout = () => {
     { title: 'Blogs', path: '/admin/blogs', icon: <FiLayers /> },
     { title: 'Feedback Ledger', path: '/admin/reviews', icon: <FiMessageSquare /> },
     { title: 'Notifications', path: '/admin/notifications', icon: <FiBell /> },
-    { title: 'Support Archive', path: '/admin/support', icon: <FiHelpCircle /> },
+    { title: 'Support Chats', path: '/admin/support', icon: <FiMessageSquare /> },
     { title: 'Legal & Policies', path: '/admin/policies', icon: <FiShield /> },
     { title: 'Settings', path: '/admin/settings', icon: <FiSettings /> },
   ];
@@ -310,9 +338,9 @@ const AdminLayout = () => {
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} 
                 className="relative text-gray-500 hover:text-admin-dark transition-colors"
               >
-                <FiBell size={20} />
-                {notifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 border-2 border-white rounded-full text-[7px] font-bold text-white flex items-center justify-center">{notifications.length}</span>
+                <FiBell size={20} className="text-[#5C2E3E]" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 border-2 border-white rounded-full text-[7px] font-bold text-white flex items-center justify-center">{unreadCount}</span>
                 )}
               </button>
 
@@ -324,23 +352,41 @@ const AdminLayout = () => {
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                     className="absolute right-0 mt-3 w-72 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50"
                   >
-                    <div className="p-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                      <h3 className="text-[12px] font-bold text-gray-900">Notifications</h3>
-                    </div>
-                    <div className="max-h-[300px] overflow-y-auto">
-                      {notifications.length > 0 ? (
-                        notifications.map((n) => (
-                          <div key={n.id} className="p-3 border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer transition-colors last:border-0">
-                            <p className="text-[11px] font-bold text-gray-800">{n.text}</p>
-                            <p className="text-[9px] text-gray-400 mt-1 font-medium">{n.time}</p>
-                          </div>
-                        ))
-                      ) : (
-                         <div className="p-5 text-center">
-                           <p className="text-[11px] text-gray-500">No new notifications</p>
-                         </div>
+                    <div className="flex justify-between items-center px-4 py-3 border-b border-gray-100">
+                      <h3 className="font-bold text-gray-900 font-serif">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <button 
+                          onClick={handleMarkAllReadHeader}
+                          className="text-xs text-[#054425] font-semibold hover:underline"
+                        >
+                          Mark all read
+                        </button>
                       )}
                     </div>
+                    <div className="max-h-64 overflow-y-auto custom-scrollbar">
+                      {notifications.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-gray-500">No new notifications</div>
+                      ) : (
+                        notifications.map(notification => (
+                          <div key={notification._id || notification.id} className={`p-4 border-b border-gray-50 hover:bg-gray-50 flex items-start gap-3 transition-colors ${!notification.isRead ? 'bg-[#FAF7F8]' : ''}`}>
+                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                              <FiMessageSquare className="text-blue-600" size={14} />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm text-gray-900 font-semibold">{notification.title || 'Notification'}</p>
+                              <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notification.message}</p>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <Link 
+                      to="/admin/notifications"
+                      onClick={() => setIsNotificationsOpen(false)}
+                      className="block w-full text-center py-2 text-xs font-bold text-[#5C2E3E] bg-gray-50 hover:bg-gray-100 rounded-b-xl"
+                    >
+                      View All Notifications
+                    </Link>
                   </motion.div>
                 )}
               </AnimatePresence>
