@@ -11,7 +11,8 @@ const {
   getVendorEarnings,
   getVendorReviews,
   getVendorDashboardStats,
-  getVendorProfile
+  getVendorProfile,
+  updateVendorProfile
 } = require('../controllers/vendorController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
@@ -22,6 +23,7 @@ router.post('/login', loginVendor);
 
 // Vendor specific routes
 router.get('/profile', protect, authorize('vendor'), getVendorProfile);
+router.put('/profile', protect, authorize('vendor'), updateVendorProfile);
 router.get('/dashboard-stats', protect, authorize('vendor'), getVendorDashboardStats);
 router.get('/earnings', protect, authorize('vendor'), getVendorEarnings);
 router.get('/reviews', protect, authorize('vendor'), getVendorReviews);

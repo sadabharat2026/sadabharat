@@ -24,6 +24,22 @@ const createTicket = async (req, res, next) => {
       success: true,
       data: ticket
     });
+
+    // Notify Admins
+    try {
+      const { sendNotificationToUser } = require('../utils/pushNotificationHelper');
+      await sendNotificationToUser(
+        null,
+        'admin',
+        {
+          title: 'New Support Ticket',
+          body: `Ticket #${ticket._id} created by user.`
+        },
+        'info'
+      );
+    } catch (err) {
+      console.error('FCM Ticket Error:', err);
+    }
   } catch (error) {
     next(error);
   }
@@ -84,6 +100,22 @@ const updateTicket = async (req, res, next) => {
       success: true,
       data: ticket
     });
+
+    // Notify User
+    try {
+      const { sendNotificationToUser } = require('../utils/pushNotificationHelper');
+      await sendNotificationToUser(
+        ticket.user,
+        'user',
+        {
+          title: 'Support Ticket Updated',
+          body: `Your ticket #${ticket._id} status is now ${status}.`
+        },
+        'info'
+      );
+    } catch (err) {
+      console.error('FCM Ticket Update Error:', err);
+    }
   } catch (error) {
     next(error);
   }

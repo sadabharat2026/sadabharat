@@ -73,7 +73,7 @@ const markAllRead = async (req, res, next) => {
 // GET /api/admins/notifications — Admin views all
 const getAdminNotifications = async (req, res, next) => {
   try {
-    const notifications = await Notification.find().sort({ createdAt: -1 });
+    const notifications = await Notification.find({ targetRole: { $ne: 'admin' } }).sort({ createdAt: -1 });
     res.status(200).json({ success: true, data: { notifications } });
   } catch (error) {
     next(error);

@@ -60,6 +60,24 @@ const createProduct = async (req, res) => {
 
     const productWithStock = await injectStock(product);
     res.status(201).json({ success: true, data: productWithStock });
+
+    // Notify Admin if created by Vendor
+    if (req.user.role === 'vendor') {
+      try {
+        const { sendNotificationToUser } = require('../utils/pushNotificationHelper');
+        await sendNotificationToUser(
+          null,
+          'admin',
+          {
+            title: 'New Product Pending Approval',
+            body: `Vendor has submitted a new product "${product.name}" for review.`
+          },
+          'info'
+        );
+      } catch (err) {
+        console.error('FCM Product Creation Error:', err);
+      }
+    }
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -115,6 +133,34 @@ const updateProductStatus = async (req, res) => {
     }
 
     res.status(200).json({ success: true, data: product });
+
+    // Notify Vendor about status change
+    if (product.vendor) {
+      try {
+        const { sendNotificationToUser } = require('../utils/pushNotificationHelper');
+        let title = 'Product Status Updated';
+        let type = 'info';
+        if (status === 'approved') {
+          title = 'Product Approved';
+          type = 'success';
+        } else if (status === 'rejected') {
+          title = 'Product Rejected';
+          type = 'alert';
+        }
+
+        await sendNotificationToUser(
+          product.vendor,
+          'vendor',
+          {
+            title,
+            body: `Your product "${product.name}" has been ${status}.`
+          },
+          type
+        );
+      } catch (err) {
+        console.error('FCM Product Status Error:', err);
+      }
+    }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -22,7 +22,7 @@ const StatCard = ({ title, value, trend, trendUp, date, icon: Icon, iconBg, icon
       <div className="flex justify-between items-start mb-1 sm:mb-2">
         <div className="min-w-0 flex-1">
           <p className="text-gray-700 text-[9px] sm:text-[10px] md:text-[11px] font-bold font-sans mb-0.5 truncate">{title}</p>
-          <h3 className="text-sm sm:text-base md:text-lg text-gray-800 font-bold font-sans tracking-tight truncate">
+          <h3 className="text-sm sm:text-base md:text-lg text-gray-800 font-semibold font-sans tracking-tight truncate">
             {value}
           </h3>
         </div>
@@ -165,7 +165,7 @@ const VendorDashboard = () => {
   }
 
   return (
-    <div className="space-y-4 pb-6 max-w-[1400px] mx-auto -mt-2 p-4">
+    <div className="space-y-4 pb-6 max-w-[1400px] mx-auto px-4 pt-1">
       {/* Header */}
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
@@ -193,8 +193,8 @@ const VendorDashboard = () => {
         <StatCard 
           title="Total Sales" 
           value={stats.totalSales} 
-          trend="↑ 12.8%" 
-          trendUp={true} 
+          trend={`${stats.salesTrend >= 0 ? '↑' : '↓'} ${Math.abs(stats.salesTrend || 0)}%`} 
+          trendUp={stats.salesTrend >= 0} 
           date="last month"
           icon={ShoppingBag}
           iconBg="bg-green-200/60"
@@ -204,8 +204,8 @@ const VendorDashboard = () => {
         <StatCard 
           title="Total Orders" 
           value={stats.totalOrders} 
-          trend="↑ 8.4%" 
-          trendUp={true} 
+          trend={`${stats.ordersTrend >= 0 ? '↑' : '↓'} ${Math.abs(stats.ordersTrend || 0)}%`} 
+          trendUp={stats.ordersTrend >= 0} 
           date="last month"
           icon={ClipboardList}
           iconBg="bg-blue-200/60"
@@ -215,8 +215,8 @@ const VendorDashboard = () => {
         <StatCard 
           title="Total Customers" 
           value={stats.totalCustomers} 
-          trend="↑ 11.2%" 
-          trendUp={true} 
+          trend={`${stats.customersTrend >= 0 ? '↑' : '↓'} ${Math.abs(stats.customersTrend || 0)}%`} 
+          trendUp={stats.customersTrend >= 0} 
           date="last month"
           icon={User}
           iconBg="bg-purple-200/60"
@@ -226,8 +226,8 @@ const VendorDashboard = () => {
         <StatCard 
           title="Store Rating" 
           value={stats.storeRating} 
-          trend="↑ 0.1" 
-          trendUp={true} 
+          trend={`${stats.ratingTrend >= 0 ? '↑' : '↓'} ${Math.abs(stats.ratingTrend || 0)}`} 
+          trendUp={stats.ratingTrend >= 0} 
           date="last month"
           icon={Star}
           iconBg="bg-orange-200/60"

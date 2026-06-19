@@ -377,16 +377,30 @@ const getVendorDashboardStats = async (req, res, next) => {
     const vendorId = req.user._id;
 
     // Get all products of this vendor
+    console.time('stats-products');
     const vendorProducts = await Product.find({ vendor: vendorId }).select('_id name');
     const productIds = vendorProducts.map(p => p._id);
+    console.timeEnd('stats-products');
 
     // 1. Total Sales & Orders from Earnings
+    console.time('stats-earnings');
     const earnings = await Earning.find({ vendor: vendorId, status: { $ne: 'Refunded' } });
+    console.timeEnd('stats-earnings');
     
     let totalSales = 0;
     let totalCommission = 0;
     let totalPayouts = 0;
+    
+    let currentMonthSales = 0;
+    let lastMonthSales = 0;
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const sixtyDaysAgo = new Date();
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
     const uniqueOrdersSet = new Set();
+    const currentMonthOrders = new Set();
+    const lastMonthOrders = new Set();
 
     earnings.forEach(e => {
       totalSales += e.totalAmount;
@@ -394,20 +408,57 @@ const getVendorDashboardStats = async (req, res, next) => {
       if (e.status === 'Cleared') {
         totalPayouts += e.netEarning;
       }
+      
+      const isCurrentMonth = e.createdAt >= thirtyDaysAgo;
+      const isLastMonth = e.createdAt >= sixtyDaysAgo && e.createdAt < thirtyDaysAgo;
+      
+      if (isCurrentMonth) currentMonthSales += e.totalAmount;
+      if (isLastMonth) lastMonthSales += e.totalAmount;
+
       if (e.order) {
-        uniqueOrdersSet.add(e.order.toString());
+        const orderIdStr = e.order.toString();
+        uniqueOrdersSet.add(orderIdStr);
+        if (isCurrentMonth) currentMonthOrders.add(orderIdStr);
+        if (isLastMonth) lastMonthOrders.add(orderIdStr);
       }
     });
 
     const totalOrders = uniqueOrdersSet.size;
+    
+    // Trend Calculations
+    const calcTrend = (current, previous) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return Number((((current - previous) / previous) * 100).toFixed(1));
+    };
+    
+    const salesTrend = calcTrend(currentMonthSales, lastMonthSales);
+    const ordersTrend = calcTrend(currentMonthOrders.size, lastMonthOrders.size);
 
     // 2. Total Customers from Orders
-    const orders = await Order.find({ _id: { $in: Array.from(uniqueOrdersSet) } }).select('user');
-    const uniqueCustomersSet = new Set(orders.map(o => o.user?.toString()).filter(Boolean));
+    console.time('stats-orders');
+    const orders = await Order.find({ _id: { $in: Array.from(uniqueOrdersSet) } }).select('user createdAt');
+    console.timeEnd('stats-orders');
+    
+    const currentMonthCustomers = new Set();
+    const lastMonthCustomers = new Set();
+    const uniqueCustomersSet = new Set();
+    
+    orders.forEach(o => {
+      if (o.user) {
+        const userIdStr = o.user.toString();
+        uniqueCustomersSet.add(userIdStr);
+        if (o.createdAt >= thirtyDaysAgo) currentMonthCustomers.add(userIdStr);
+        if (o.createdAt >= sixtyDaysAgo && o.createdAt < thirtyDaysAgo) lastMonthCustomers.add(userIdStr);
+      }
+    });
+    
     const totalCustomers = uniqueCustomersSet.size;
+    const customersTrend = calcTrend(currentMonthCustomers.size, lastMonthCustomers.size);
 
     // 3. Average Store Rating
+    console.time('stats-reviews');
     const reviews = await Review.find({ product: { $in: productIds } }).select('rating');
+    console.timeEnd('stats-reviews');
     let storeRating = '4.5';
     if (reviews.length > 0) {
       const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
@@ -415,10 +466,12 @@ const getVendorDashboardStats = async (req, res, next) => {
     }
 
     // 4. Recent Orders
+    console.time('stats-recentOrders');
     const recentOrders = await Order.find({ 'orderItems.product': { $in: productIds } })
       .sort({ createdAt: -1 })
       .limit(5)
       .populate('user', 'name');
+    console.timeEnd('stats-recentOrders');
 
     const formattedOrders = recentOrders.map(o => {
       const vendorItems = o.orderItems.filter(item => productIds.some(pid => pid.toString() === item.product?.toString()));
@@ -442,12 +495,15 @@ const getVendorDashboardStats = async (req, res, next) => {
     });
 
     // 5. Top Selling Products
+    console.time('stats-aggregate');
+    const mongoose = require('mongoose');
     const topProductsRaw = await Earning.aggregate([
-      { $match: { vendor: vendorId, status: { $ne: 'Refunded' } } },
+      { $match: { vendor: new mongoose.Types.ObjectId(vendorId.toString()), status: { $ne: 'Refunded' } } },
       { $group: { _id: '$productName', sales: { $sum: '$totalAmount' }, units: { $sum: 1 } } },
       { $sort: { units: -1 } },
       { $limit: 5 }
     ]);
+    console.timeEnd('stats-aggregate');
 
     const topProducts = topProductsRaw.map(tp => ({
       name: tp._id || 'Unknown Product',
@@ -459,15 +515,60 @@ const getVendorDashboardStats = async (req, res, next) => {
       success: true,
       data: {
         totalSales: `₹${totalSales.toLocaleString('en-IN')}`,
+        salesTrend,
         totalOrders,
+        ordersTrend,
         totalCustomers,
+        customersTrend,
         storeRating,
+        ratingTrend: 0, // Mock rating trend
         recentOrders: formattedOrders,
         topProducts,
         commission: `₹${totalCommission.toLocaleString('en-IN')}`,
         payouts: `- ₹${totalPayouts.toLocaleString('en-IN')}`,
         availableBalance: `₹${(totalSales - totalCommission - totalPayouts).toLocaleString('en-IN')}`
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateVendorProfile = async (req, res, next) => {
+  try {
+    const vendorId = req.user._id;
+    const { storeName, fullName, email, phone, gstNumber, panNumber, fssaiLicense, aadharNumber, bankName, accountNumber, ifscCode } = req.body;
+
+    // Check if email is already taken by another vendor
+    if (email) {
+      const existingVendor = await Vendor.findOne({ email, _id: { $ne: vendorId } });
+      if (existingVendor) {
+        return res.status(400).json({ success: false, message: 'Email is already in use by another vendor.' });
+      }
+    }
+
+    const updatedVendor = await Vendor.findByIdAndUpdate(
+      vendorId,
+      {
+        storeName,
+        fullName,
+        email,
+        phone,
+        gstNumber,
+        panNumber,
+        fssaiLicense,
+        aadharNumber,
+        bankName,
+        accountNumber,
+        ifscCode
+      },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: { vendor: updatedVendor }
     });
   } catch (error) {
     next(error);
@@ -486,5 +587,6 @@ module.exports = {
   getVendorEarnings,
   getVendorReviews,
   getVendorDashboardStats,
-  getVendorProfile
+  getVendorProfile,
+  updateVendorProfile
 };
