@@ -6,6 +6,7 @@ import FeaturedProducts from './FeaturedProducts';
 import BestSellers from './BestSellers';
 import FeaturesBar from './FeaturesBar';
 import Testimonials from './Testimonials';
+import InstagramFeed from './InstagramFeed';
 
 const Home = () => {
   return (
@@ -27,6 +28,9 @@ const Home = () => {
 
       {/* Customer Testimonials - just before footer */}
       <Testimonials />
+
+      {/* Instagram Feed Section */}
+      <InstagramFeed />
       
       {/* Bottom Features Banner Bar (100% Natural, etc.) */}
       <FeaturesBar />

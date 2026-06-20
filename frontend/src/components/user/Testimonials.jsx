@@ -88,7 +88,7 @@ const Testimonials = () => {
           className="testimonials-ayur-swiper !overflow-visible"
         >
           {testimonials.map((item, index) => (
-            <SwiperSlide key={item._id}>
+            <SwiperSlide key={item._id} className="!h-auto">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -127,21 +127,21 @@ const Testimonials = () => {
                 <div className="h-px bg-gradient-to-r from-[#054425]/10 via-[#D4AF37]/20 to-transparent mb-2" />
 
                 {/* Quote */}
-                <div className="flex-1 relative">
-                  <p className="text-[#0B3B24]/80 text-[13px] sm:text-sm leading-relaxed mb-6 font-serif italic line-clamp-4 relative z-10">
+                <div className="flex-1 relative pb-2">
+                  <p className="text-[#0B3B24]/80 text-[13px] sm:text-sm leading-relaxed font-serif italic line-clamp-4 relative z-10">
                     "{item.content}"
                   </p>
                 </div>
 
-                {/* Product tag */}
-                {item.product && (
-                  <div className="mt-2 pt-2 border-t border-gray-50">
+                {/* Product tag or empty placeholder to maintain height */}
+                <div className="mt-auto pt-2 border-t border-gray-50 h-8 flex items-center">
+                  {item.product && (
                     <span className="inline-flex items-center gap-1 bg-[#F2F6E8] text-[#054425] text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide">
                       <span className="w-1 h-1 rounded-full bg-[#D4AF37]" />
                       {item.product}
                     </span>
-                  </div>
-                )}
+                  )}
+                </div>
               </motion.div>
             </SwiperSlide>
           ))}

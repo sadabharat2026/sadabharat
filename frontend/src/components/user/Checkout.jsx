@@ -234,7 +234,7 @@ const Checkout = () => {
         currency,
         name: "Sada Bharat",
         description: "Ritual Selection Transaction",
-        image: "/logo_s.jpg",
+        image: "/logo.png",
         order_id: razorpay_order_id,
         handler: async (response) => {
           // 2. Verify payment & save order

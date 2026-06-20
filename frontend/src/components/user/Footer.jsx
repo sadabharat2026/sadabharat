@@ -42,13 +42,13 @@ const Footer = () => {
             </h3>
             <ul className="space-y-1.5" style={POPPINS}>
               <li>
-                <a href="https://facebook.com/sadabharatayurvedic/" target="_blank" rel="noreferrer"
+                <a href="https://www.facebook.com/share/15uwQAqMZY3/?mibextid=wwXIfr" target="_blank" rel="noreferrer"
                    className="flex items-center gap-1.5 text-[11px] font-semibold text-[#054425]/75 hover:text-[#D4AF37] transition-colors">
                   <FiFacebook size={12} /> Facebook
                 </a>
               </li>
               <li>
-                <a href="https://instagram.com/sadabharatayurvedic/" target="_blank" rel="noreferrer"
+                <a href="https://www.instagram.com/sadabharatayurvedic?utm_source=qr" target="_blank" rel="noreferrer"
                    className="flex items-center gap-1.5 text-[11px] font-semibold text-[#054425]/75 hover:text-[#D4AF37] transition-colors">
                   <FiInstagram size={12} /> Instagram
                 </a>

@@ -391,7 +391,7 @@ const UserOrders = () => {
                                                     onClick={() => setChatOrder(order)}
                                                     className="bg-white border border-[#054425] text-[#054425] px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#EAF0EC] transition-all flex items-center gap-1 shadow-sm"
                                                 >
-                                                    <FiMessageCircle size={13} /> {order.orderItems?.some(i => i.vendor) ? 'Chat Vendor' : 'Chat Support'}
+                                                    <FiMessageCircle size={13} /> Chat Support
                                                 </button>
                                             )}
                                              <button
@@ -518,26 +518,15 @@ const UserOrders = () => {
                             onClick={(e) => e.stopPropagation()}
                         >
                             <ChatWindow
-                                conversationId={chatOrder.orderItems?.some(i => i.vendor) ? getConversationId.userVendor(
-                                    user._id,
-                                    chatOrder.orderItems?.find(i => i.vendor)?.vendor?._id ||
-                                    chatOrder.orderItems?.find(i => i.vendor)?.vendor
-                                ) : getConversationId.userAdmin(user._id)}
-                                metadata={chatOrder.orderItems?.some(i => i.vendor) ? {
-                                    type: 'user-vendor',
-                                    userId: user._id,
-                                    userName: user.name,
-                                    vendorId: chatOrder.orderItems?.find(i => i.vendor)?.vendor?._id ||
-                                        chatOrder.orderItems?.find(i => i.vendor)?.vendor,
-                                    orderId: chatOrder._id,
-                                } : {
+                                conversationId={getConversationId.userAdmin(user._id)}
+                                metadata={{
                                     type: 'user-admin',
                                     userId: user._id,
                                     userName: user.name,
                                     orderId: chatOrder._id,
                                 }}
                                 currentUser={{ id: user._id, name: user.name, role: 'user' }}
-                                recipientName={chatOrder.orderItems?.some(i => i.vendor) ? "Vendor Support" : "Sada Bharat Support"}
+                                recipientName="Sada Bharat Support"
                                 onClose={() => setChatOrder(null)}
                                 className="h-full flex-1 border-0 sm:rounded-2xl rounded-t-2xl shadow-none"
                             />

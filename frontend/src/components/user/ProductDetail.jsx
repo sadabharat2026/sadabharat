@@ -732,22 +732,15 @@ const ProductDetail = () => {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <ChatWindow
-                        conversationId={product.vendor ? getConversationId.userVendor(user._id, typeof product.vendor === 'string' ? product.vendor : product.vendor._id) : getConversationId.userAdmin(user._id)}
-                        metadata={product.vendor ? {
-                          type: 'user-vendor',
-                          userId: user._id,
-                          userName: user.name || user.fullName || 'User',
-                          vendorId: typeof product.vendor === 'string' ? product.vendor : product.vendor._id,
-                          vendorName: product.vendor?.storeName || product.vendor?.fullName || 'Vendor',
-                          productId: product._id,
-                        } : {
+                        conversationId={getConversationId.userAdmin(user._id)}
+                        metadata={{
                           type: 'user-admin',
                           userId: user._id,
                           userName: user.name || user.fullName || 'User',
                           productId: product._id,
                         }}
                         currentUser={{ id: user._id, name: user.name || user.fullName || 'User', role: 'user' }}
-                        recipientName={product.vendor ? (product.vendor?.storeName || product.vendor?.fullName || 'Vendor') : 'Sada Bharat Support'}
+                        recipientName="Sada Bharat Support"
                         onClose={() => setIsChatOpen(false)}
                         className="h-full flex-1 border-0 sm:rounded-2xl rounded-t-2xl shadow-none"
                       />
