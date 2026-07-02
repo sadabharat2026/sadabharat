@@ -13,6 +13,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const offerRoutes = require('./routes/offerRoutes');
 const couponRoutes = require('./routes/couponRoutes');
 const blogRoutes = require('./routes/blogRoutes');
+const shippingRoutes = require('./routes/shipping.routes');
 const { errorHandler } = require('./middlewares/errorHandler');
 const connectDB = require('./config/db');
 
@@ -40,6 +41,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/blogs', blogRoutes);
+app.use('/api/shipping', shippingRoutes);
 const adminRoutes = require('./routes/adminRoutes');
 app.use('/api/admins', adminRoutes);
 const testimonialRoutes = require('./routes/testimonialRoutes');

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiStar, FiHeart, FiShare2, FiShoppingCart, FiZap,
   FiShield, FiTruck, FiRefreshCw, FiCheckCircle, FiChevronRight, FiTag, FiX, FiMessageSquare,
-  FiActivity, FiTarget, FiFeather, FiDroplet, FiMinus, FiPlus
+  FiActivity, FiTarget, FiFeather, FiDroplet, FiMinus, FiPlus, FiMessageCircle
 } from 'react-icons/fi';
 import { useShop } from '../../context/ShopContext';
 

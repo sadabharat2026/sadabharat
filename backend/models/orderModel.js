@@ -107,7 +107,20 @@ const orderSchema = new mongoose.Schema({
     bankName: String,
     accountNumber: String,
     ifscCode: String
-  }
+  },
+  
+  // Shiprocket Integration Fields
+  shiprocketOrderId: { type: String },
+  shipmentId: { type: String },
+  awbCode: { type: String },
+  courierName: { type: String },
+  trackingUrl: { type: String },
+  shippingCharge: { type: Number },
+  pickupScheduled: { type: Boolean, default: false },
+  labelUrl: { type: String },
+  invoiceUrl: { type: String },
+  shippingStatus: { type: String },
+  estimatedDelivery: { type: Date }
 }, {
   timestamps: true
 });

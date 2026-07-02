@@ -1,7 +1,7 @@
 const User = require('../models/userModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-
+const { sendSmsOtp } = require('../services/otpService');
 // Generate JWT Token
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_ACCESS_SECRET || 'secret123', {
@@ -150,6 +150,12 @@ const sendRegisterOtp = async (req, res, next) => {
 
     console.log(`Registration OTP for ${mobile} is ${otp}`);
 
+    // Send real SMS
+    const smsResult = await sendSmsOtp(mobile, otp);
+    if (!smsResult.success) {
+      console.warn(`Failed to send SMS to ${mobile}: ${smsResult.message}`);
+    }
+
     const isDev = process.env.USE_DEFAULT_OTP !== 'false';
     res.status(200).json({ 
       success: true, 
@@ -235,6 +241,12 @@ const sendOtp = async (req, res, next) => {
     await user.save();
 
     console.log(`Login OTP for ${mobile} is ${otp}`);
+
+    // Send real SMS
+    const smsResult = await sendSmsOtp(mobile, otp);
+    if (!smsResult.success) {
+      console.warn(`Failed to send SMS to ${mobile}: ${smsResult.message}`);
+    }
 
     const isDev = process.env.USE_DEFAULT_OTP !== 'false';
     res.status(200).json({ 

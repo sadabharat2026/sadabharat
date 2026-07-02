@@ -1,8 +1,8 @@
 const Order = require('../models/orderModel');
 const Product = require('../models/productModel');
 const Razorpay = require('razorpay');
-const crypto = require('crypto');
 const { sendNotificationToUser } = require('../utils/pushNotificationHelper');
+const { processShiprocketOrder } = require('./shipping.controller');
 // @desc    Create new order
 // @route   POST /api/orders
 // @access  Private
@@ -104,6 +104,11 @@ const createOrder = async (req, res) => {
     } catch (notifErr) {
       console.error('FCM: Error sending order creation notifications:', notifErr);
     }
+
+    // Trigger Shiprocket automated flow asynchronously
+    processShiprocketOrder(createdOrder._id).catch(err => {
+      console.error('Failed to process Shiprocket flow for COD order:', err.message);
+    });
 
     res.status(201).json({
       success: true,
@@ -277,6 +282,11 @@ const verifyRazorpayOrder = async (req, res) => {
     } catch (notifErr) {
       console.error('FCM: Error sending Razorpay order notifications:', notifErr);
     }
+
+    // Trigger Shiprocket automated flow asynchronously
+    processShiprocketOrder(createdOrder._id).catch(err => {
+      console.error('Failed to process Shiprocket flow for online order:', err.message);
+    });
 
     res.status(200).json({
       success: true,

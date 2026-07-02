@@ -57,7 +57,7 @@ const TrendingOffers = () => {
           >
             {[...offers, ...offers].map((offer, index) => (
               <div
-                key={offer._id || index}
+                key={offer._id ? `${offer._id}-${index}` : index}
                 className="relative w-[300px] md:w-[450px] shrink-0 aspect-[3.5/2.1] rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 group border border-gray-100 bg-[#F4F8F5]"
               >
                 {/* Product Background Image */}
