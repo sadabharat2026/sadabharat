@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { getFinanceStats, updateEarningCommission, getAdminPayouts, clearVendorPayout, getDashboardStats } = require('../controllers/adminController');
+const { getFinanceStats, updateEarningCommission, getAdminPayouts, clearVendorPayout, getDashboardStats, getUserAnalytics } = require('../controllers/adminController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
 // Using basic protect and authorize for admin routes
 // In production, ensure admin users have role 'admin'
 router.route('/dashboard-stats').get(getDashboardStats);
+router.route('/analytics').get(getUserAnalytics);
 router.route('/finance-stats').get(getFinanceStats);
 router.route('/finance/earnings/:id/commission').patch(updateEarningCommission);
 

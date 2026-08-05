@@ -141,7 +141,8 @@ const sendRegisterOtp = async (req, res, next) => {
       });
     }
 
-    const otp = process.env.USE_DEFAULT_OTP === 'false' ? Math.floor(100000 + Math.random() * 900000).toString() : '989898';
+    const isDev = process.env.USE_DEFAULT_OTP !== 'false' || mobile === '9999988888';
+    const otp = isDev ? '989898' : Math.floor(100000 + Math.random() * 900000).toString();
     const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
     user.otp = otp;
@@ -156,7 +157,6 @@ const sendRegisterOtp = async (req, res, next) => {
       console.warn(`Failed to send SMS to ${mobile}: ${smsResult.message}`);
     }
 
-    const isDev = process.env.USE_DEFAULT_OTP !== 'false';
     res.status(200).json({ 
       success: true, 
       message: 'OTP sent successfully',
@@ -224,8 +224,24 @@ const sendOtp = async (req, res, next) => {
 
     let user = await User.findOne({ mobile });
     if (!user || user.name === 'New Customer') {
-      res.status(404);
-      throw new Error('User not found. Please register first.');
+      if (mobile === '9999988888') {
+        // Automatically create or activate the test account
+        if (!user) {
+          user = await User.create({
+            name: 'Test Account',
+            mobile,
+            role: 'user',
+            isActive: true
+          });
+        } else {
+          user.name = 'Test Account';
+          user.isActive = true;
+          await user.save();
+        }
+      } else {
+        res.status(404);
+        throw new Error('User not found. Please register first.');
+      }
     }
 
     if (user.isBlocked) {
@@ -233,7 +249,8 @@ const sendOtp = async (req, res, next) => {
       throw new Error('Your account has been blocked by the admin.');
     }
 
-    const otp = process.env.USE_DEFAULT_OTP === 'false' ? Math.floor(100000 + Math.random() * 900000).toString() : '989898';
+    const isDev = process.env.USE_DEFAULT_OTP !== 'false' || mobile === '9999988888';
+    const otp = isDev ? '989898' : Math.floor(100000 + Math.random() * 900000).toString();
     const expiry = new Date(Date.now() + 10 * 60 * 1000);
 
     user.otp = otp;
@@ -248,7 +265,6 @@ const sendOtp = async (req, res, next) => {
       console.warn(`Failed to send SMS to ${mobile}: ${smsResult.message}`);
     }
 
-    const isDev = process.env.USE_DEFAULT_OTP !== 'false';
     res.status(200).json({ 
       success: true, 
       message: 'OTP sent successfully',

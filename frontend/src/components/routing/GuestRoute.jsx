@@ -1,9 +1,16 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useShop } from '../../context/ShopContext';
+
+const resolveRedirect = (from) => {
+  if (!from) return '/';
+  if (typeof from === 'string') return from;
+  return from.pathname || '/';
+};
 
 const GuestRoute = () => {
   const { isAuthenticated, isAuthLoading } = useShop();
+  const location = useLocation();
 
   if (isAuthLoading) {
     return (
@@ -14,7 +21,7 @@ const GuestRoute = () => {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={resolveRedirect(location.state?.from)} replace />;
   }
 
   return <Outlet />;

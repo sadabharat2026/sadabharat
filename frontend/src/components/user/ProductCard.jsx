@@ -6,7 +6,7 @@ import { useShop } from '../../context/ShopContext';
 import { useNavigate } from 'react-router-dom';
 
 const ProductCard = ({ product, offerBannerText, badge }) => {
-  const { cart, addToCart, removeFromCart, updateQuantity, toggleWishlist, isInWishlist, isAuthenticated, triggerFlyToCart, triggerFlyToWishlist } = useShop();
+  const { cart, addToCart, removeFromCart, updateQuantity, toggleWishlist, isInWishlist, triggerFlyToCart, triggerFlyToWishlist } = useShop();
   const [showVariants, setShowVariants] = useState(false);
   const liked = isInWishlist(product._id);
   const navigate = useNavigate();
@@ -27,7 +27,6 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
     if (variants.length > 0) {
       setShowVariants(true);
     } else {
-      if (!isAuthenticated) return navigate('/login');
       if (triggerFlyToCart && product.image) triggerFlyToCart(e, product.image);
       addToCart(product);
     }
@@ -59,7 +58,6 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
 
   const handleAddVariant = (e, variant) => {
     e.stopPropagation();
-    if (!isAuthenticated) return navigate('/login');
     if (triggerFlyToCart && product.image) triggerFlyToCart(e, product.image);
     addToCart({ ...product, price: variant.price, oldPrice: variant.oldPrice, packSize: variant.size, selectedSize: variant.size });
     setShowVariants(false);
@@ -79,11 +77,7 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
   };
 
   const handleCardClick = () => {
-    if (!isAuthenticated) {
-      navigate('/login');
-    } else {
-      navigate(`/product/${product._id}`);
-    }
+    navigate(`/product/${product._id}`);
   };
 
   return (

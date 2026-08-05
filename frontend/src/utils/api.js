@@ -4,7 +4,7 @@ import { parseApiError } from './errorHandler';
 // 1. Create a common Axios instance
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api', // Adjusted port to 5000
-    timeout: 10000, // 10 seconds timeout
+    timeout: 30000, // 30 seconds timeout to accommodate slow external APIs like Razorpay
     headers: {
         'Content-Type': 'application/json',
     }

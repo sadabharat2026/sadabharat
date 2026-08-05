@@ -58,7 +58,8 @@ import AdminSettings from './components/admin/AdminSettings';
 import AdminLayout from './components/admin/AdminLayout';
 import AdminComingSoon from './components/admin/AdminComingSoon';
 import AdminInventory from './components/admin/AdminInventory';
-import AdminCoupons from './components/admin/AdminCoupons';
+
+import AdminCoupons from './components/admin/AdminCoupons';
 import AdminOffers from './components/admin/AdminOffers';
 import AdminVendors from './components/admin/AdminVendors';
 import AdminReturns from './components/admin/AdminReturns';
@@ -72,6 +73,7 @@ import AdminLogistics from './components/admin/AdminLogistics';
 import AdminLocations from './components/admin/AdminLocations';
 import AdminLogin from './components/admin/AdminLogin';
 import AdminPolicies from './components/admin/AdminPolicies';
+import AdminAnalytics from './components/admin/AdminAnalytics';
 
 // Vendor Module Imports
 import VendorLayout from './components/vendor/VendorLayout';
@@ -195,6 +197,7 @@ const AdminRoutes = () => (
     {/* Nested Routes inside AdminLayout */}
     <Route element={<AdminLayout />}>
       <Route path="/" element={<AdminDashboard />} />
+      <Route path="/analytics" element={<AdminAnalytics />} />
       <Route path="/products" element={<AdminProducts />} />
       <Route path="/categories" element={<AdminCategories />} />
       <Route path="/users" element={<AdminUsers />} />

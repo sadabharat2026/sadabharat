@@ -12,6 +12,8 @@ const AdminOrders = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [trackingInput, setTrackingInput] = useState('');
+  const [shipmentModal, setShipmentModal] = useState({ isOpen: false, orderId: null });
+  const [isShipping, setIsShipping] = useState(false);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -35,7 +37,6 @@ const AdminOrders = () => {
     try {
       await api.put(`/orders/${orderId}/item/${itemId}/status`, { status, trackingNumber });
       fetchOrders();
-      // Update selected order view dynamically if open
       if (selectedOrder && selectedOrder._id === orderId) {
         const updatedOrder = { ...selectedOrder };
         const itemIndex = updatedOrder.orderItems.findIndex(i => i._id === itemId);
@@ -47,6 +48,21 @@ const AdminOrders = () => {
       }
     } catch (err) {
       alert("Failed to update status: " + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleCreateShipment = async () => {
+    if (!shipmentModal.orderId) return;
+    try {
+      setIsShipping(true);
+      await api.post('/shipping/create', { orderId: shipmentModal.orderId });
+      alert('Success! The shipment has been created and the courier has been assigned.');
+      fetchOrders();
+    } catch (err) {
+      alert("Oops! Failed to create the shipment. Reason: " + (err.response?.data?.message || err.message));
+    } finally {
+      setIsShipping(false);
+      setShipmentModal({ isOpen: false, orderId: null });
     }
   };
 
@@ -85,10 +101,10 @@ const AdminOrders = () => {
 
   const filteredItems = orderItemsList.filter(item => {
     const matchesFilter = filter === 'All' || item.status === filter;
-    const nameMatch = item.customer.toLowerCase().includes(searchQuery.toLowerCase());
-    const idMatch = item.displayOrderId.toLowerCase().includes(searchQuery.toLowerCase());
-    const emailMatch = item.customerEmail.toLowerCase().includes(searchQuery.toLowerCase());
-    const vendorMatch = item.vendorName.toLowerCase().includes(searchQuery.toLowerCase());
+    const nameMatch = (item.customer || '').toLowerCase().includes((searchQuery || '').toLowerCase());
+    const idMatch = (item.displayOrderId || '').toLowerCase().includes((searchQuery || '').toLowerCase());
+    const emailMatch = (item.customerEmail || '').toLowerCase().includes((searchQuery || '').toLowerCase());
+    const vendorMatch = (item.vendorName || '').toLowerCase().includes((searchQuery || '').toLowerCase());
 
     return matchesFilter && (nameMatch || idMatch || emailMatch || vendorMatch);
   });
@@ -223,6 +239,32 @@ const AdminOrders = () => {
                     {selectedOrder.shippingAddress?.country}
                   </p>
                 </div>
+
+                {selectedOrder.shiprocketOrderId && (
+                  <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 mt-4">
+                    <h3 className="text-sm font-bold text-blue-900 flex items-center gap-2 border-b border-blue-200/50 pb-2 mb-3">
+                      Shiprocket Tracking
+                    </h3>
+                    <div className="space-y-2 text-sm text-blue-800">
+                      <div className="flex justify-between">
+                        <span className="font-semibold">Order ID:</span>
+                        <span>{selectedOrder.shiprocketOrderId}</span>
+                      </div>
+                      {selectedOrder.awbCode && (
+                        <div className="flex justify-between">
+                          <span className="font-semibold">AWB Code:</span>
+                          <span className="font-mono bg-blue-100 px-1 rounded">{selectedOrder.awbCode}</span>
+                        </div>
+                      )}
+                      {selectedOrder.courierName && (
+                        <div className="flex justify-between">
+                          <span className="font-semibold">Courier:</span>
+                          <span>{selectedOrder.courierName}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -317,12 +359,27 @@ const AdminOrders = () => {
                       </span>
                     </td>
                     <td className="px-4 py-2.5">
-                      <button
-                        onClick={() => setSelectedOrder(item.fullOrder)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-[11px] font-medium rounded hover:bg-gray-50 transition-colors whitespace-nowrap"
-                      >
-                        <FiEye size={12} /> View
-                      </button>
+                      <div className="flex gap-2 items-center">
+                        <button
+                          onClick={() => setSelectedOrder(item.fullOrder)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-[11px] font-medium rounded hover:bg-gray-50 transition-colors whitespace-nowrap"
+                        >
+                          <FiEye size={12} /> View
+                        </button>
+                        {!item.fullOrder.shiprocketOrderId && (
+                          <button
+                            onClick={() => setShipmentModal({ isOpen: true, orderId: item.fullOrder._id })}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#054425] text-white text-[11px] font-medium rounded hover:bg-[#04331c] transition-colors whitespace-nowrap"
+                          >
+                            <FiTruck size={12} /> Ship
+                          </button>
+                        )}
+                        {item.fullOrder.shiprocketOrderId && (
+                          <span className="text-[10px] text-gray-500 italic whitespace-nowrap px-1">
+                            {item.fullOrder.shippingStatus || 'Shipped'}
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -337,6 +394,39 @@ const AdminOrders = () => {
           </table>
         </div>
       </div>
+
+      {/* Shipment Confirmation Modal */}
+      {shipmentModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FiTruck className="text-blue-600 w-8 h-8" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Ready to Ship?</h2>
+              <p className="text-sm text-gray-500 mb-6">
+                This will automatically assign a courier and generate a shipping label for this order.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => setShipmentModal({ isOpen: false, orderId: null })}
+                  disabled={isShipping}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateShipment}
+                  disabled={isShipping}
+                  className="px-4 py-2 bg-[#054425] text-white font-semibold rounded-lg hover:bg-[#04331c] transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isShipping ? 'Processing...' : 'Yes, Ship Now'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

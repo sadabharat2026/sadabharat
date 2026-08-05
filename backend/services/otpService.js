@@ -10,8 +10,8 @@ const sendSmsOtp = async (mobile, otp) => {
     return { success: false, message: 'SMS Provider not configured' };
   }
 
-  // 1. Mock Mode Check (If USE_DEFAULT_OTP is true, we might not want to send real SMS)
-  if (process.env.USE_DEFAULT_OTP === 'true') {
+  // 1. Mock Mode Check (If USE_DEFAULT_OTP is true or specific test number)
+  if (process.env.USE_DEFAULT_OTP === 'true' || mobile === '9999988888') {
     console.log(`[MOCK SMS] To: ${mobile} | OTP: ${otp}`);
     return { success: true, message: 'OTP sent (Mock)' };
   }

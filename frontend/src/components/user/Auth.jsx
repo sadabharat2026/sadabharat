@@ -7,6 +7,12 @@ import { registerFCMToken } from '../../services/pushNotificationService';
 
 import api from '../../utils/api';
 
+const resolveRedirect = (from, fallback = '/') => {
+  if (!from) return fallback;
+  if (typeof from === 'string') return from;
+  return from.pathname || fallback;
+};
+
 const Auth = () => {
   const { isAuthenticated, setIsAuthenticated, setUser } = useShop();
   const navigate = useNavigate();
@@ -15,9 +21,9 @@ const Auth = () => {
 
   useEffect(() => {
     if (isAuthenticated && !isAdminPath) {
-      navigate('/');
+      navigate(resolveRedirect(location.state?.from, '/'), { replace: true });
     }
-  }, [isAuthenticated, isAdminPath, navigate]);
+  }, [isAuthenticated, isAdminPath, navigate, location.state]);
 
   const [form, setForm] = useState({ mobile: '', email: '', password: '', otp: '' });
 
@@ -121,7 +127,7 @@ const Auth = () => {
           if (setUser) setUser(userData);
           setIsAuthenticated(true);
           showNotification("Login Successful! Welcome to Sada Bharat.", "success");
-          const from = location.state?.from || '/admin';
+          const from = resolveRedirect(location.state?.from, '/admin');
           setTimeout(() => navigate(from), 1200);
         }
       } else {
@@ -137,7 +143,7 @@ const Auth = () => {
           if (setUser) setUser(userData);
           setIsAuthenticated(true);
           showNotification("Login Successful! Welcome to Sada Bharat.", "success");
-          const from = location.state?.from || '/';
+          const from = resolveRedirect(location.state?.from, '/');
           setTimeout(() => navigate(from), 1200);
         }
       }

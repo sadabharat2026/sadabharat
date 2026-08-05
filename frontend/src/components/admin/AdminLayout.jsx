@@ -113,6 +113,7 @@ const AdminLayout = () => {
 
   const menuItems = [
     { title: 'Overview', path: '/admin', icon: <FiBox /> },
+    { title: 'Analytics', path: '/admin/analytics', icon: <FiTrendingUp /> },
     { title: 'Categories', path: '/admin/categories', icon: <FiLayers /> },
     { title: 'Products', path: '/admin/products', icon: <FiShoppingBag /> },
     { title: 'Inventory', path: '/admin/inventory', icon: <FiBox /> },
