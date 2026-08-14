@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiChevronLeft, FiShoppingBag, FiCreditCard, FiTruck, FiCheckCircle, FiShield, FiMinus, FiPlus, FiTrash2, FiCheck, FiAlertTriangle, FiRefreshCw } from 'react-icons/fi';
+import { FiChevronLeft, FiShoppingBag, FiCreditCard, FiTruck, FiCheckCircle, FiShield, FiMinus, FiPlus, FiTrash2, FiCheck, FiAlertTriangle, FiRefreshCw, FiTag } from 'react-icons/fi';
 import { useShop } from '../../context/ShopContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Confetti from 'react-confetti';
@@ -39,6 +39,8 @@ const Checkout = () => {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
+  const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [couponsLoading, setCouponsLoading] = useState(true);
   const [isDisclaimerAccepted, setIsDisclaimerAccepted] = useState(false);
   const [disclaimerError, setDisclaimerError] = useState('');
   const [errors, setErrors] = useState({});
@@ -52,7 +54,7 @@ const Checkout = () => {
         ...prev,
         name: prev.name || user.name || '',
         email: prev.email || user.email || '',
-        phone: prev.phone || user.phone || '',
+        phone: prev.phone || String(user.phone || user.mobile || '').replace(/\D/g, '').replace(/^0+/, '').slice(0, 10),
         address: prev.address || user.address || '',
         landmark: prev.landmark || user.landmark || '',
         pincode: prev.pincode || user.pincode || '',
@@ -142,6 +144,24 @@ const Checkout = () => {
     window.scrollTo(0, 0);
   }, [step, isSuccess]);
 
+  // Load valid coupons created from admin panel
+  useEffect(() => {
+    const fetchValidCoupons = async () => {
+      try {
+        setCouponsLoading(true);
+        const res = await api.get('/coupons/public');
+        const list = res.data?.data?.coupons || [];
+        setAvailableCoupons(list);
+      } catch (err) {
+        console.error('Failed to fetch checkout coupons:', err);
+        setAvailableCoupons([]);
+      } finally {
+        setCouponsLoading(false);
+      }
+    };
+    fetchValidCoupons();
+  }, []);
+
   // Router State Payload checks (Promos from Bag)
   const location = useLocation();
   const directProduct = location.state?.directProduct || null;
@@ -188,7 +208,12 @@ const Checkout = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    const sanitizedValue = name === 'pincode' ? value.replace(/\D/g, '').slice(0, 6) : value;
+    let sanitizedValue = value;
+    if (name === 'pincode') {
+      sanitizedValue = value.replace(/\D/g, '').slice(0, 6);
+    } else if (name === 'phone') {
+      sanitizedValue = value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 10);
+    }
     setFormData(prev => ({ ...prev, [name]: sanitizedValue }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
@@ -203,8 +228,8 @@ const Checkout = () => {
     }
     if (!formData.phone?.trim()) {
       newErrors.phone = 'Phone is required';
-    } else if (!/^\d{10}$/.test(formData.phone.trim())) {
-      newErrors.phone = 'Please enter a valid 10-digit number';
+    } else if (!/^[1-9]\d{9}$/.test(formData.phone.trim())) {
+      newErrors.phone = 'Please enter a valid 10-digit number (cannot start with 0)';
     }
     if (!formData.address?.trim()) newErrors.address = 'Address is required';
     if (!formData.pincode?.trim()) {
@@ -274,25 +299,35 @@ const Checkout = () => {
     }
   };
 
-  const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) return;
+  const applyCouponData = (coupon) => {
+    setAppliedCoupon(coupon);
+    let discount = 0;
+    if (coupon.discountType === 'percentage') {
+      discount = Math.round(subtotal * (coupon.discountValue / 100));
+    } else {
+      discount = coupon.discountValue;
+    }
+    setDiscountAmount(Math.min(discount, subtotal));
+    setCouponError('');
+    setCouponCode('');
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setDiscountAmount(0);
+    setCouponError('');
+  };
+
+  const handleApplyCoupon = async (codeOverride) => {
+    const codeToApply = (typeof codeOverride === 'string' ? codeOverride : couponCode).trim().toUpperCase();
+    if (!codeToApply) return;
     setCouponLoading(true);
     setCouponError('');
     try {
-      const res = await api.post('/coupons/validate', { code: couponCode.trim().toUpperCase() });
-      const coupon = res.data.data.coupon;
-      setAppliedCoupon(coupon);
-
-      let discount = 0;
-      if (coupon.discountType === 'percentage') {
-        discount = Math.round(subtotal * (coupon.discountValue / 100));
-      } else {
-        discount = coupon.discountValue;
-      }
-      setDiscountAmount(discount);
-      setCouponCode('');
+      const res = await api.post('/coupons/validate', { code: codeToApply });
+      applyCouponData(res.data.data.coupon);
     } catch (err) {
-      setCouponError(err.response?.data?.message || 'Invalid Ritual Key');
+      setCouponError(err.response?.data?.message || 'Invalid coupon code');
     } finally {
       setCouponLoading(false);
     }
@@ -456,7 +491,7 @@ const Checkout = () => {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="Email *" required className={`w-full bg-white border ${errors.email ? 'border-red-400' : 'border-gray-200'} px-4 py-2 text-sm outline-none focus:border-[#054425] transition-all rounded-md`} />
-                          <input type="text" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="Phone *" required className={`w-full bg-white border ${errors.phone ? 'border-red-400' : 'border-gray-200'} px-4 py-2 text-sm outline-none focus:border-[#054425] transition-all rounded-md`} />
+                          <input type="tel" inputMode="numeric" maxLength={10} name="phone" value={formData.phone} onChange={handleInputChange} placeholder="Phone *" required autoComplete="tel" className={`w-full bg-white border ${errors.phone ? 'border-red-400' : 'border-gray-200'} px-4 py-2 text-sm outline-none focus:border-[#054425] transition-all rounded-md`} />
                         </div>
                         
                         <div className="grid grid-cols-2 gap-4">
@@ -553,16 +588,68 @@ const Checkout = () => {
 
                 <div className="flex items-center gap-3 py-1">
                     <input type="text" value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())} placeholder="Coupon Code" className="flex-1 border border-gray-200 px-4 py-2 text-xs outline-none focus:border-[#054425] rounded-md uppercase" />
-                    <button type="button" onClick={handleApplyCoupon} disabled={couponLoading || !couponCode.trim()} className="bg-gray-100 text-gray-700 px-4 py-2 text-xs rounded-md hover:bg-gray-200 transition-all disabled:opacity-50 border border-gray-200">APPLY</button>
+                    <button type="button" onClick={() => handleApplyCoupon()} disabled={couponLoading || !couponCode.trim()} className="bg-gray-100 text-gray-700 px-4 py-2 text-xs rounded-md hover:bg-gray-200 transition-all disabled:opacity-50 border border-gray-200">APPLY</button>
                 </div>
                 {couponError && <p className="text-xs text-red-500">{couponError}</p>}
+
+                <div className="space-y-2">
+                  <p className="text-[11px] font-bold text-gray-700 uppercase tracking-wide flex items-center gap-1.5">
+                    <FiTag size={12} className="text-[#054425]" /> Available Coupons
+                  </p>
+                  {couponsLoading ? (
+                    <p className="text-[11px] text-gray-400">Loading coupons...</p>
+                  ) : availableCoupons.length === 0 ? (
+                    <p className="text-[11px] text-gray-400">No valid coupons available right now.</p>
+                  ) : (
+                    <div className="max-h-44 overflow-y-auto space-y-2 pr-1">
+                      {availableCoupons.map((coupon) => {
+                        const isApplied = appliedCoupon?.code === coupon.code;
+                        const offerText = coupon.discountType === 'percentage'
+                          ? `${coupon.discountValue}% OFF`
+                          : `₹${coupon.discountValue} OFF`;
+                        return (
+                          <div
+                            key={coupon._id || coupon.code}
+                            className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 ${isApplied ? 'border-[#054425] bg-[#EAF0EC]' : 'border-gray-200 bg-gray-50'}`}
+                          >
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-[#054425] tracking-wide">{coupon.code}</p>
+                              <p className="text-[10px] text-gray-600 font-medium">{offerText}</p>
+                              {coupon.expiryDate && (
+                                <p className="text-[9px] text-gray-400">Till {new Date(coupon.expiryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              disabled={couponLoading}
+                              onClick={() => isApplied ? handleRemoveCoupon() : handleApplyCoupon(coupon.code)}
+                              className={`shrink-0 text-[10px] font-bold uppercase px-2.5 py-1 rounded-md transition-colors ${
+                                isApplied
+                                  ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white'
+                                  : 'border border-[#054425] text-[#054425] hover:bg-[#054425] hover:text-white'
+                              }`}
+                            >
+                              {isApplied ? 'Remove' : 'Apply'}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
 
                 {appliedCoupon && (
                     <div className="flex justify-between items-center text-sm">
                         <span className="text-[#054425] font-medium">Discount ({appliedCoupon.code})</span>
                         <div className="flex items-center gap-2">
                             <span className="text-[#054425]">-₹{discountAmount.toFixed(2)}</span>
-                            <button type="button" onClick={() => { setAppliedCoupon(null); setDiscountAmount(0); }} className="text-gray-400 hover:text-red-500"><FiTrash2 size={12} /></button>
+                            <button
+                              type="button"
+                              onClick={handleRemoveCoupon}
+                              className="text-[10px] font-bold uppercase text-red-600 hover:text-white hover:bg-red-600 border border-red-200 px-2 py-0.5 rounded-md transition-colors"
+                            >
+                              Remove
+                            </button>
                         </div>
                     </div>
                 )}

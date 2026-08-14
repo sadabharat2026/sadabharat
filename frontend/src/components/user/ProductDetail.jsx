@@ -11,6 +11,7 @@ import { useShop } from '../../context/ShopContext';
 import api from '../../utils/api';
 import ChatWindow from '../shared/ChatWindow';
 import { getConversationId } from '../../services/chatService';
+import { getProductVariants, getCartQty, resolveSelectedSize } from '../../utils/cart';
 
 import ConsultationCTA from './ConsultationCTA';
 import ProductCard from './ProductCard';
@@ -295,7 +296,9 @@ const ProductDetail = () => {
     // Reset coupon when changing product
     setAppliedCoupon(null);
     setCouponInput('');
-    setSelectedSize(null); // Reset size when changing product
+
+    const cartItem = cart.find(item => String(item._id) === String(id));
+    setSelectedSize(cartItem?.selectedSize || null);
 
     if (id) {
       fetchReviews();
@@ -321,27 +324,18 @@ const ProductDetail = () => {
     );
   }
 
-  const isCustomProduct = product && String(product._id).startsWith('custom-prod-');
-  const variants = product ? (product.variants || (isCustomProduct ? [] : (product.name.toLowerCase().includes('milk') || product.name.toLowerCase().includes('bhringraj') ? [
-    { size: '100 ml', price: product.price, oldPrice: product.oldPrice },
-    { size: '200 ml', price: Math.round(product.price * 1.8), oldPrice: Math.round((product.oldPrice || product.price) * 1.8) }
-  ] : (Array.isArray(product.sizes) && product.sizes.length > 0 ? product.sizes.map(s => ({ size: s, price: product.price, oldPrice: product.oldPrice })) : [
-    { size: '100 ml', price: product.price, oldPrice: product.oldPrice },
-    { size: '200 ml', price: Math.round(product.price * 1.8), oldPrice: Math.round((product.oldPrice || product.price) * 1.8) },
-    { size: '300 ml', price: Math.round(product.price * 2.5), oldPrice: Math.round((product.oldPrice || product.price) * 2.5) }
-  ])))) : [];
+  const variants = getProductVariants(product);
 
   const parsedIngredients = product.ingredients
     ? product.ingredients.split(',').map(s => s.trim()).filter(Boolean)
     : ['Bhringraj', 'Amla', 'Coconut Oil', 'Brahmi'];
 
-  const currentSize = selectedSize || (variants.length > 0 ? variants[0].size : null);
+  const currentSize = resolveSelectedSize(product, selectedSize);
   const selectedVariant = variants.find(v => v.size === currentSize) || variants[0] || product;
   const basePrice = selectedVariant?.price || product?.price || 0;
   const oldPrice = selectedVariant?.oldPrice || product?.oldPrice || Math.round(basePrice * 1.3);
 
-  const cartItems = cart ? cart.filter(item => item._id === product._id && item.selectedSize === currentSize) : [];
-  const totalQtyInCart = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const totalQtyInCart = getCartQty(cart, product._id, currentSize);
 
   const calculateDiscountedPrice = () => {
     if (!appliedCoupon) return basePrice;

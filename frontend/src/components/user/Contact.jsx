@@ -5,6 +5,7 @@ import { FiMail, FiPhone, FiMapPin, FiInstagram, FiFacebook, FiTwitter, FiArrowR
 // Import images (assuming we'll move the generated ones here)
 import contactHero from '../../assets/images/contact_hero.png';
 import contactThumb from '../../assets/images/contact_thumb.png';
+import { getWhatsAppHref, handleWhatsAppClick } from '../../utils/whatsapp';
 
 const Contact = () => {
   return (
@@ -98,14 +99,15 @@ const Contact = () => {
               <ContactInfo
                 icon={<FiPhone size={16} />}
                 label="Talk to us"
-                value="+91 74071 75567"
-                href="tel:+917407175567"
+                value="+91 97727 77736"
+                href="tel:+919772777736"
               />
               <ContactInfo
                 icon={<FiPhone size={16} />}
                 label="WhatsApp"
-                value="+91 74071 75567"
-                href="https://wa.me/917407175567"
+                value="+91 97727 77736"
+                href={getWhatsAppHref()}
+                onClick={handleWhatsAppClick()}
               />
               <ContactInfo
                 icon={<FiInstagram size={16} />}
@@ -143,7 +145,8 @@ const Contact = () => {
 
                 {/* Float CTA */}
                 <motion.a
-                  href="https://wa.me/917407175567"
+                  href={getWhatsAppHref()}
+                  onClick={handleWhatsAppClick()}
                   target="_blank"
                   rel="noreferrer"
                   whileHover={{ scale: 1.05 }}
@@ -218,9 +221,10 @@ const Contact = () => {
   );
 };
 
-const ContactInfo = ({ icon, label, value, href }) => (
+const ContactInfo = ({ icon, label, value, href, onClick }) => (
   <motion.a
     href={href}
+    onClick={onClick}
     target={href?.startsWith('http') ? '_blank' : undefined}
     rel={href?.startsWith('http') ? 'noreferrer' : undefined}
     whileHover={{ x: 5 }}

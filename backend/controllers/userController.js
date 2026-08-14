@@ -141,9 +141,10 @@ const sendRegisterOtp = async (req, res, next) => {
       });
     }
 
-    const isDev = process.env.USE_DEFAULT_OTP !== 'false' || mobile === '9999988888';
+    const isDev = process.env.USE_DEFAULT_OTP === 'true' || mobile === '9999988888';
     const otp = isDev ? '989898' : Math.floor(100000 + Math.random() * 900000).toString();
-    const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+    const expiryMinutes = Number(process.env.OTP_EXPIRY_MINUTES) || 10;
+    const expiry = new Date(Date.now() + expiryMinutes * 60 * 1000);
 
     user.otp = otp;
     user.otpExpiry = expiry;
@@ -151,10 +152,11 @@ const sendRegisterOtp = async (req, res, next) => {
 
     console.log(`Registration OTP for ${mobile} is ${otp}`);
 
-    // Send real SMS
     const smsResult = await sendSmsOtp(mobile, otp);
     if (!smsResult.success) {
       console.warn(`Failed to send SMS to ${mobile}: ${smsResult.message}`);
+      res.status(502);
+      throw new Error(`Failed to send OTP SMS. Please try again. (${smsResult.message})`);
     }
 
     res.status(200).json({ 
@@ -249,9 +251,10 @@ const sendOtp = async (req, res, next) => {
       throw new Error('Your account has been blocked by the admin.');
     }
 
-    const isDev = process.env.USE_DEFAULT_OTP !== 'false' || mobile === '9999988888';
+    const isDev = process.env.USE_DEFAULT_OTP === 'true' || mobile === '9999988888';
     const otp = isDev ? '989898' : Math.floor(100000 + Math.random() * 900000).toString();
-    const expiry = new Date(Date.now() + 10 * 60 * 1000);
+    const expiryMinutes = Number(process.env.OTP_EXPIRY_MINUTES) || 10;
+    const expiry = new Date(Date.now() + expiryMinutes * 60 * 1000);
 
     user.otp = otp;
     user.otpExpiry = expiry;
@@ -259,10 +262,11 @@ const sendOtp = async (req, res, next) => {
 
     console.log(`Login OTP for ${mobile} is ${otp}`);
 
-    // Send real SMS
     const smsResult = await sendSmsOtp(mobile, otp);
     if (!smsResult.success) {
       console.warn(`Failed to send SMS to ${mobile}: ${smsResult.message}`);
+      res.status(502);
+      throw new Error(`Failed to send OTP SMS. Please try again. (${smsResult.message})`);
     }
 
     res.status(200).json({ 

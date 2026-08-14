@@ -12,7 +12,7 @@ const Coupons = () => {
   const fetchCoupons = useCallback(async () => {
       try {
           setLoading(true);
-          const res = await api.get('/coupons?active=true');
+          const res = await api.get('/coupons/public');
           const fetched = res.data?.data?.coupons;
           if (fetched && fetched.length > 0) {
               setCoupons(fetched);

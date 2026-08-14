@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiCalendar, FiClock, FiUser, FiMail, FiPhone, FiMessageSquare, FiCheckCircle } from 'react-icons/fi';
 import api from '../../utils/api';
+import { getWhatsAppHref, handleWhatsAppClick } from '../../utils/whatsapp';
 
 const Consultation = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -16,7 +17,11 @@ const Consultation = () => {
   });
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    const nextValue = name === 'phone'
+      ? value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 10)
+      : value;
+    setFormData({ ...formData, [name]: nextValue });
   };
 
   const handleSubmit = async (e) => {
@@ -97,7 +102,7 @@ const Consultation = () => {
             <div className="absolute top-0 right-0 w-32 h-32 bg-brand-pink/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
             <h3 className="text-xl font-serif font-bold text-brand-dark mb-2">Have a quick question?</h3>
             <p className="text-sm text-gray-600 mb-4">You can also reach out to us via WhatsApp for quick inquiries regarding our products.</p>
-            <a href="https://wa.me/919896472169?text=Hello%20Sada%20Bharat,%20I%20have%20an%20inquiry." target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-[#25D366] text-white px-6 py-2.5 rounded-full font-bold text-sm hover:shadow-lg transition-all hover:-translate-y-0.5">
+            <a href={getWhatsAppHref('Hello Sada Bharat, I have an inquiry.')} onClick={handleWhatsAppClick('Hello Sada Bharat, I have an inquiry.')} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-[#25D366] text-white px-6 py-2.5 rounded-full font-bold text-sm hover:shadow-lg transition-all hover:-translate-y-0.5">
               Chat on WhatsApp
             </a>
           </div>

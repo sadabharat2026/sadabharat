@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { FiCheckCircle, FiX } from 'react-icons/fi';
+import { getWhatsAppHref, handleWhatsAppClick } from '../../utils/whatsapp';
 
 const Newsletter = () => {
   const [email, setEmail] = useState('');
@@ -36,7 +37,8 @@ const Newsletter = () => {
           <p className="text-[8px] md:text-[9px] text-gray-400 mb-6 font-bold uppercase tracking-widest">Get Instant Ritual Support & Organic Updates.</p>
           
           <a 
-            href="https://wa.me/919896472169" 
+            href={getWhatsAppHref()}
+            onClick={handleWhatsAppClick()}
             target="_blank" 
             rel="noreferrer"
             className="inline-flex items-center gap-3 bg-brand-dark text-white px-10 py-3 rounded-none text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#25D366] transition-all active:scale-95 shadow-lg group"

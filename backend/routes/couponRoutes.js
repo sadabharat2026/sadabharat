@@ -2,13 +2,16 @@ const express = require('express');
 const router = express.Router();
 const {
     getCoupons,
+    getPublicCoupons,
+    validateCoupon,
     createCoupon,
     updateCoupon,
     deleteCoupon
 } = require('../controllers/couponController');
 
-// All routes are public for now based on other backend routes structure, 
-// auth middleware can be added later if needed.
+router.get('/public', getPublicCoupons);
+router.post('/validate', validateCoupon);
+
 router.route('/')
     .get(getCoupons)
     .post(createCoupon);

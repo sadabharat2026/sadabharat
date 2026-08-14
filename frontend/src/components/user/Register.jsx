@@ -64,9 +64,13 @@ const Register = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    let nextValue = type === 'checkbox' ? checked : value;
+    if (name === 'mobile') {
+      nextValue = value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 10);
+    }
     setForm(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: nextValue
     }));
   };
 

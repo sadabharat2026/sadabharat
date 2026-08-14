@@ -23,7 +23,7 @@ export const generateInvoice = async (order) => {
         <p style="margin: 0;">Lajpat Nagar, Near Radha Swami Bhawan</p>
         <p style="margin: 0;">Fatehabad - 125050, Haryana</p>
         <p style="margin: 0;">GSTIN: 06AAKCS7164N1Z2 (PROVISIONAL)</p>
-        <p style="margin: 0;">Contact: +91 9896472169</p>
+        <p style="margin: 0;">Contact: +91 97727 77736</p>
       </div>
     </div>
 

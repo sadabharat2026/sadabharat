@@ -4,6 +4,7 @@ import { ShopProvider, useShop } from './context/ShopContext';
 import Lenis from 'lenis';
 import 'lenis/dist/lenis.css';
 import { FaWhatsapp } from 'react-icons/fa';
+import { getWhatsAppHref, handleWhatsAppClick } from './utils/whatsapp';
 // Routing Guards
 import ProtectedRoute from './components/routing/ProtectedRoute';
 import GuestRoute from './components/routing/GuestRoute';
@@ -34,6 +35,7 @@ import ProductDetail from './components/user/ProductDetail';
 import Bag from './components/user/Bag';
 import UserOrders from './components/user/UserOrders';
 import ScrollToTop from './components/user/ScrollToTop';
+import MetaPixelTracker from './components/tracking/MetaPixelTracker';
 import RaiseTicket from './components/user/RaiseTicket';
 import Consultation from './components/user/Consultation';
 import { initializePushNotifications, setupForegroundNotificationHandler } from './services/pushNotificationService';
@@ -117,7 +119,8 @@ const PublicLayout = () => {
             dragMomentum={false}
             draggable={false}
             whileDrag={{ scale: 1.05 }}
-            href="https://wa.me/917407175567?text=Hello%20Sada%20Bharat%20Ayurvedic,%20I%20have%20an%20inquiry%20regarding%20your%20organic%20products."
+            href={getWhatsAppHref()}
+            onClick={handleWhatsAppClick()}
             target="_blank"
             rel="noopener noreferrer"
             className="fixed bottom-24 lg:bottom-6 right-4 lg:right-6 z-[9999] flex items-center gap-3 group cursor-grab active:cursor-grabbing"
@@ -313,6 +316,7 @@ function App() {
       <NotificationListener />
       <Router>
         <ScrollToTop />
+        <MetaPixelTracker />
         <Routes>
           <Route path="/admin/*" element={<AdminRoutes />} />
           <Route path="/vendor/*" element={<VendorRoutes />} />

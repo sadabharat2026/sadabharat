@@ -52,7 +52,7 @@ const Auth = () => {
   const handleInputChange = (e) => {
     let { name, value } = e.target;
     if (name === 'mobile') {
-      value = value.replace(/\D/g, ''); // only allow digits
+      value = value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 10);
     }
     setForm({ ...form, [name]: value });
     if (errors[name]) {

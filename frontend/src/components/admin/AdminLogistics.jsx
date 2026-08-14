@@ -19,7 +19,7 @@ const AdminLogistics = () => {
     estDeliveryDays: '3-5 Business Days',
     shippingPartner: 'Standard Courier',
     trackingUrl: 'https://shiprocket.co/tracking/',
-    supportContact: '+91 74071 75567'
+    supportContact: '+91 97727 77736'
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -41,7 +41,7 @@ const AdminLogistics = () => {
           estDeliveryDays: res.data.data.settings.estDeliveryDays || '3-5 Business Days',
           shippingPartner: res.data.data.settings.shippingPartner || 'Standard Courier',
           trackingUrl: res.data.data.settings.trackingUrl || 'https://shiprocket.co/tracking/',
-          supportContact: res.data.data.settings.supportContact || '+91 74071 75567',
+          supportContact: res.data.data.settings.supportContact || '+91 97727 77736',
           isCodEnabled: res.data.data.settings.isCodEnabled ?? true,
           codCharge: res.data.data.settings.codCharge || 0
         });
@@ -292,7 +292,7 @@ const AdminLogistics = () => {
                   value={settings.supportContact}
                   onChange={(e) => setSettings({ ...settings, supportContact: e.target.value })}
                   className="w-full bg-gray-50 border border-transparent p-4 pl-10 rounded-xl text-xs font-bold outline-none focus:bg-white focus:border-admin-accent/30 transition-all shadow-inner"
-                  placeholder="+91 74071 75567"
+                  placeholder="+91 97727 77736"
                 />
               </div>
             </div>

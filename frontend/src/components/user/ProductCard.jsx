@@ -4,6 +4,7 @@ import { FiHeart, FiStar, FiX, FiMinus, FiPlus } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useShop } from '../../context/ShopContext';
 import { useNavigate } from 'react-router-dom';
+import { getProductVariants, getCartQty, getCartQtyForProduct } from '../../utils/cart';
 
 const ProductCard = ({ product, offerBannerText, badge }) => {
   const { cart, addToCart, removeFromCart, updateQuantity, toggleWishlist, isInWishlist, triggerFlyToCart, triggerFlyToWishlist } = useShop();
@@ -11,33 +12,29 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
   const liked = isInWishlist(product._id);
   const navigate = useNavigate();
 
-  // Find if product is in cart and total quantity
-  const cartItems = cart.filter(item => item._id === product._id);
-  const totalQty = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-
-  // Fallback to empty variants if none exist, or mock them if you want to test the modal
-  // For demonstration, let's pretend some products have variants if they don't explicitly
-  const variants = product.variants || (product.name.toLowerCase().includes('milk') || product.name.toLowerCase().includes('bhringraj') ? [
-    { size: '100 ml', price: product.price, oldPrice: product.oldPrice },
-    { size: '200 ml', price: Math.round(product.price * 1.8), oldPrice: Math.round((product.oldPrice||product.price) * 1.8) }
-  ] : []);
+  const variants = getProductVariants(product);
+  const defaultSize = variants[0]?.size || product.packSize || null;
+  const hasMultipleVariants = variants.length > 1;
+  const cartItems = cart.filter(item => String(item._id) === String(product._id));
+  const totalQty = getCartQtyForProduct(cart, product._id);
 
   const handleAddClick = (e) => {
     e.stopPropagation();
-    if (variants.length > 0) {
+    if (hasMultipleVariants) {
       setShowVariants(true);
     } else {
       if (triggerFlyToCart && product.image) triggerFlyToCart(e, product.image);
-      addToCart(product);
+      addToCart({ ...product, selectedSize: defaultSize, packSize: defaultSize || product.packSize });
     }
   };
 
   const handleDecrease = (e) => {
     e.stopPropagation();
-    if (variants.length > 0) {
+    if (hasMultipleVariants) {
       setShowVariants(true);
     } else {
       const item = cartItems[0];
+      if (!item) return;
       if (item.quantity <= 1) {
         removeFromCart(item._id, item.selectedSize);
       } else {
@@ -48,10 +45,11 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
 
   const handleIncrease = (e) => {
     e.stopPropagation();
-    if (variants.length > 0) {
+    if (hasMultipleVariants) {
       setShowVariants(true);
     } else {
       const item = cartItems[0];
+      if (!item) return;
       updateQuantity(item._id, item.selectedSize, 1);
     }
   };
@@ -190,7 +188,7 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
                 className="flex flex-col items-center justify-center border border-[#054425] rounded px-4 md:px-5 h-full bg-white hover:bg-green-50 transition-colors shadow-sm"
               >
                 <span className="text-[10px] md:text-[11px] font-bold text-[#054425] leading-none">ADD</span>
-                {variants.length > 0 && (
+                {variants.length > 1 && (
                   <span className="text-[6px] md:text-[7px] font-semibold text-gray-500 leading-none mt-1">{variants.length} options</span>
                 )}
               </button>
@@ -239,8 +237,7 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
               <div className="space-y-3">
                 {variants.map((v, idx) => {
                   // Check qty of this specific variant in cart
-                  const vCartItems = cart.filter(item => item._id === product._id && item.selectedSize === v.size);
-                  const vQty = vCartItems.reduce((sum, item) => sum + item.quantity, 0);
+                  const vQty = getCartQty(cart, product._id, v.size);
 
                   return (
                     <div key={idx} className="flex items-center justify-between p-3 border border-gray-200 rounded-xl hover:border-[#054425]/30 transition-colors bg-white shadow-sm">

@@ -49,8 +49,20 @@ export const ShopProvider = ({ children }) => {
   const [categories, setCategories] = useState([]);
   const [offers, setOffers] = useState([]);
   const [banners, setBanners] = useState([]);
-  const [cart, setCart] = useState([]);
-  const [wishlist, setWishlist] = useState([]);
+  const [cart, setCart] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sadabharat_cart') || localStorage.getItem('saundarya_cart');
+      if (saved && saved !== 'undefined') return JSON.parse(saved);
+    } catch (e) { /* ignore */ }
+    return [];
+  });
+  const [wishlist, setWishlist] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sadabharat_wishlist') || localStorage.getItem('saundarya_wishlist');
+      if (saved && saved !== 'undefined') return JSON.parse(saved);
+    } catch (e) { /* ignore */ }
+    return [];
+  });
   const [settings, setSettings] = useState({
     taxRate: 18,
     deliveryCharge: 50,
@@ -58,7 +70,7 @@ export const ShopProvider = ({ children }) => {
     estDeliveryDays: '3-5 Business Days',
     shippingPartner: 'Standard Courier',
     trackingUrl: 'https://shiprocket.co/tracking/',
-    supportContact: '+91 74071 75567'
+    supportContact: '+91 97727 77736'
   });
   const [loading, setLoading] = useState(true);
 
@@ -209,23 +221,15 @@ export const ShopProvider = ({ children }) => {
     fetchData();
     checkAuth();
 
-    // Load local storage items
-    try {
-      const savedCart = localStorage.getItem('saundarya_cart');
-      const savedWishlist = localStorage.getItem('saundarya_wishlist');
-      if (savedCart && savedCart !== "undefined") setCart(JSON.parse(savedCart));
-      if (savedWishlist && savedWishlist !== "undefined") setWishlist(JSON.parse(savedWishlist));
-    } catch (e) {
-      console.error("Local storage error:", e);
-    }
   }, [fetchData, checkAuth]);
 
-  // Sync Cart/Wishlist back to local storage
   useEffect(() => {
+    localStorage.setItem('sadabharat_cart', JSON.stringify(cart));
     localStorage.setItem('saundarya_cart', JSON.stringify(cart));
   }, [cart]);
 
   useEffect(() => {
+    localStorage.setItem('sadabharat_wishlist', JSON.stringify(wishlist));
     localStorage.setItem('saundarya_wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
 
@@ -331,24 +335,34 @@ export const ShopProvider = ({ children }) => {
   };
 
   const addToCart = (product) => {
+    const selectedSize = product.selectedSize ?? product.packSize ?? null;
+    const line = { ...product, selectedSize, packSize: product.packSize || selectedSize };
     setCart(prev => {
-      const existing = prev.find(item => item._id === product._id && item.selectedSize === product.selectedSize);
+      const existing = prev.find(item =>
+        String(item._id) === String(line._id) &&
+        String(item.selectedSize ?? '') === String(selectedSize ?? '')
+      );
       if (existing) {
         return prev.map(item =>
-          (item._id === product._id && item.selectedSize === product.selectedSize) ? { ...item, quantity: item.quantity + 1 } : item
+          (String(item._id) === String(line._id) &&
+            String(item.selectedSize ?? '') === String(selectedSize ?? ''))
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
         );
       }
-      return [...prev, { ...product, quantity: 1 }];
+      return [...prev, { ...line, quantity: 1 }];
     });
   };
 
   const removeFromCart = (productId, size) => {
-    setCart(prev => prev.filter(item => !(item._id === productId && item.selectedSize === size)));
+    setCart(prev => prev.filter(item =>
+      !(String(item._id) === String(productId) && String(item.selectedSize ?? '') === String(size ?? ''))
+    ));
   };
 
   const updateQuantity = (productId, size, delta) => {
     setCart(prev => prev.map(item => {
-      if (item._id === productId && item.selectedSize === size) {
+      if (String(item._id) === String(productId) && String(item.selectedSize ?? '') === String(size ?? '')) {
         const newQty = Math.max(1, item.quantity + delta);
         return { ...item, quantity: newQty };
       }
