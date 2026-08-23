@@ -14,3 +14,7 @@ dist-ssr/
 *.log
 .DS_Store
 .idea
+
+# Local dumps / unused media (not part of the app)
+frontend/src/extracted-testimonial-animation/
+frontend/public/top_banner_video.mp4
