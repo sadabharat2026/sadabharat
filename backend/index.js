@@ -15,10 +15,17 @@ const couponRoutes = require('./routes/couponRoutes');
 const blogRoutes = require('./routes/blogRoutes');
 const shippingRoutes = require('./routes/shipping.routes');
 const { errorHandler } = require('./middlewares/errorHandler');
+const { ipRateLimiter } = require('./middlewares/rateLimiter');
 const connectDB = require('./config/db');
 
 // Initialize Express App
 const app = express();
+
+// Production nginx already sends X-Forwarded-For. Enable only on the server:
+// TRUST_PROXY=1
+if (process.env.TRUST_PROXY === 'true' || process.env.TRUST_PROXY === '1') {
+  app.set('trust proxy', 1);
+}
 
 // Connect to Database
 connectDB();
@@ -27,6 +34,7 @@ connectDB();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(ipRateLimiter);
 
 // Routes
 app.use('/api/users', userRoutes);

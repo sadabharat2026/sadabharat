@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import api from '../../utils/api';
+import ScrollHeading from '../shared/ScrollHeading';
 
 const TrendingOffers = () => {
   const [offers, setOffers] = useState([]);
@@ -32,9 +33,9 @@ const TrendingOffers = () => {
         {/* Header Block matching mockup */}
         <div className="flex items-center justify-between mb-2 md:mb-4">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg md:text-2xl font-serif font-black text-[#054425] tracking-tight">
+            <ScrollHeading as="h2" className="text-lg md:text-2xl font-serif font-black text-[#054425] tracking-tight">
               Trending Offers
-            </h2>
+            </ScrollHeading>
           </div>
 
           <Link

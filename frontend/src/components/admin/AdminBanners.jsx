@@ -22,6 +22,7 @@ const AdminBanners = () => {
     price: '',
     btnText: 'SHOP NOW',
     isVideo: false,
+    sequence: 1,
     seoTitle: '',
     seoDescription: '',
     seoKeywords: ''
@@ -84,6 +85,7 @@ const AdminBanners = () => {
       price: banner.price || '',
       btnText: banner.btnText || 'SHOP NOW',
       isVideo: banner.isVideo || false,
+      sequence: banner.sequence !== undefined ? banner.sequence : 1,
       seoTitle: banner.seoTitle || '',
       seoDescription: banner.seoDescription || '',
       seoKeywords: banner.seoKeywords || ''
@@ -104,7 +106,7 @@ const AdminBanners = () => {
       }
       setIsAdding(false);
       setEditingBanner(null);
-      setForm({ title: '', image: '', link: '', type: 'Main Slider', description: '', subtitle: '', price: '', btnText: 'SHOP NOW', isVideo: false, seoTitle: '', seoDescription: '', seoKeywords: '' });
+      setForm({ title: '', image: '', link: '', type: 'Main Slider', description: '', subtitle: '', price: '', btnText: 'SHOP NOW', isVideo: false, sequence: 1, seoTitle: '', seoDescription: '', seoKeywords: '' });
       fetchData();
     } catch (err) {
       console.error('API Error:', err);
@@ -117,7 +119,7 @@ const AdminBanners = () => {
   const handleCancel = () => {
     setIsAdding(false);
     setEditingBanner(null);
-    setForm({ title: '', image: '', link: '', type: 'Main Slider', description: '', subtitle: '', price: '', btnText: 'SHOP NOW', isVideo: false, seoTitle: '', seoDescription: '', seoKeywords: '' });
+    setForm({ title: '', image: '', link: '', type: 'Main Slider', description: '', subtitle: '', price: '', btnText: 'SHOP NOW', isVideo: false, sequence: 1, seoTitle: '', seoDescription: '', seoKeywords: '' });
   };
 
   return (
@@ -190,6 +192,22 @@ const AdminBanners = () => {
               <div className="space-y-1">
                 <label className="text-[8px] font-black uppercase text-gray-400">Starting Price / Badge</label>
                 <input type="text" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full bg-gray-50 border-none text-[10px] font-bold p-2 outline-none" placeholder="₹300" />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[8px] font-black uppercase text-brand-dark flex items-center gap-1">
+                  <span>Banner Sequence Order</span>
+                  <span className="text-[7px] text-gray-400 font-normal">(1 = 1st, 2 = 2nd...)</span>
+                </label>
+                <input 
+                  type="number" 
+                  min="1" 
+                  max="999" 
+                  value={form.sequence} 
+                  onChange={e => setForm({ ...form, sequence: parseInt(e.target.value) || 1 })} 
+                  className="w-full bg-gray-50 border border-brand-dark/20 text-[11px] font-bold p-2 outline-none rounded-lg focus:border-brand-dark" 
+                  placeholder="e.g. 1" 
+                />
               </div>
 
               <div className="space-y-1 md:col-span-2">
@@ -275,9 +293,19 @@ const AdminBanners = () => {
             <div key={banner._id} className="bg-white rounded-2xl border border-gray-100 shadow-sm group relative overflow-hidden flex flex-col">
               <div className="p-3 pb-0">
                 <div className="relative aspect-[21/9] bg-gray-50 overflow-hidden rounded-xl border border-gray-50">
-                  <img src={banner.image} alt={banner.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  <div className="absolute top-2 left-2 flex gap-1">
+                  {banner.isVideo || (typeof banner.image === 'string' && (banner.image.endsWith('.mp4') || banner.image.endsWith('.webm') || banner.image.includes('video'))) ? (
+                    <video src={banner.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" muted loop autoPlay />
+                  ) : (
+                    <img src={banner.image} alt={banner.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  )}
+                  <div className="absolute top-2 left-2 flex gap-1 items-center">
+                    <span className="bg-[#D4AF37] text-[#054425] text-[9px] font-black px-2 py-1 rounded uppercase tracking-widest shadow-md">
+                      #{banner.sequence !== undefined ? banner.sequence : 1}
+                    </span>
                     <span className="bg-brand-dark/90 text-white text-[9px] font-bold px-2 py-1 rounded uppercase tracking-widest shadow-sm backdrop-blur-md">{banner.type}</span>
+                    {(banner.isVideo || (typeof banner.image === 'string' && banner.image.endsWith('.mp4'))) && (
+                      <span className="bg-purple-600 text-white text-[9px] font-bold px-1.5 py-1 rounded uppercase tracking-widest shadow-sm">Video</span>
+                    )}
                   </div>
                 </div>
               </div>

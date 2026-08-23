@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Env files (backend already ignores .env; keep secrets out of git)
+.env
+.env.*
+!.env.example
+
+# Build
+dist/
+dist-ssr/
+
+# Logs / OS / editor
+*.log
+.DS_Store
+.idea

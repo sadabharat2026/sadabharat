@@ -35,14 +35,29 @@ const upload = multer({
   },
 });
 
-// Helper to upload a buffer to Cloudinary
+// Helper to upload a buffer to Cloudinary with automatic optimization & compression
 const uploadToCloudinary = (fileBuffer, originalname) => {
   return new Promise((resolve, reject) => {
+    const isVideoFile = /\.(mp4|mov|avi|mkv|webm)$/i.test(originalname);
+    
+    const uploadOptions = {
+      resource_type: isVideoFile ? 'video' : 'auto',
+      folder: 'sadabharat',
+      // Auto compress videos / images to modern high-efficiency web format
+      quality: 'auto:good',
+      fetch_format: 'auto'
+    };
+
+    if (isVideoFile) {
+      // Automatic video compression transformations
+      uploadOptions.transformation = [
+        { quality: 'auto:eco' }, // Compress bitrate efficiently for web fast loading
+        { video_codec: 'auto' }
+      ];
+    }
+
     const stream = cloudinary.uploader.upload_stream(
-      {
-        resource_type: 'auto', // Auto-detect if it is an image, video or PDF
-        folder: 'sadabharat',
-      },
+      uploadOptions,
       (error, result) => {
         if (error) return reject(error);
         resolve(result.secure_url);

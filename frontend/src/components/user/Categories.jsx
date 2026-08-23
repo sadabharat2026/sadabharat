@@ -14,6 +14,8 @@ import iconBodyCare from '../../assets/images/icons/icon_body_care_1779911767707
 import iconAromatherapy from '../../assets/images/icons/icon_aromatherapy_1779911786264.png';
 import iconBabyCare from '../../assets/images/icons/icon_baby_care_1779911800390.png';
 
+import ScrollHeading from '../shared/ScrollHeading';
+
 const Categories = () => {
   const { categories, products, loading } = useShop();
   const [selectedCategory, setSelectedCategory] = React.useState(null);
@@ -55,9 +57,9 @@ const Categories = () => {
         {/* Header Block matching mockup */}
         <div className="flex items-center justify-between mb-2 md:mb-4">
           <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setIsCategoriesVisible(!isCategoriesVisible)}>
-            <h2 className="text-lg md:text-2xl font-serif font-black text-[#054425] tracking-tight leading-none">
+            <ScrollHeading as="h2" className="text-lg md:text-2xl font-serif font-black text-[#054425] tracking-tight leading-none">
               Shop by Category
-            </h2>
+            </ScrollHeading>
             <span className="text-[#054425] bg-[#054425]/10 w-6 h-6 md:w-7 md:h-7 rounded-full group-hover:bg-[#054425]/20 transition-colors flex items-center justify-center shrink-0 mt-1 md:mt-1.5">
               <FiChevronDown className={`w-4 h-4 md:w-5 md:h-5 transition-transform duration-300 ${isCategoriesVisible ? 'rotate-180' : ''}`} />
             </span>

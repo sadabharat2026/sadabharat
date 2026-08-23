@@ -4,6 +4,7 @@ import ProductCard from './ProductCard';
 import { Link } from 'react-router-dom';
 import { useShop } from '../../context/ShopContext';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import ScrollHeading from '../shared/ScrollHeading';
 
 import 'swiper/css';
 
@@ -30,9 +31,9 @@ const BestSellers = () => {
 
         {/* Header — clean, no arrows here */}
         <div className="flex items-center justify-between mb-4 pb-1">
-          <h2 className="text-lg md:text-2xl font-serif font-black text-[#054425] tracking-tight">
+          <ScrollHeading as="h2" className="text-lg md:text-2xl font-serif font-black text-[#054425] tracking-tight">
             Best Selling Products
-          </h2>
+          </ScrollHeading>
           <Link
             to="/shop?sort=Top Rated"
             className="flex items-center gap-1.5 text-xs font-bold text-[#054425] hover:text-[#0d5c34] transition-colors tracking-tight uppercase"

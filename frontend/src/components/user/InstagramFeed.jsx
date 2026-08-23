@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FiInstagram } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import api from '../../utils/api';
+import ScrollHeading from '../shared/ScrollHeading';
 
 const InstagramFeed = () => {
   const [instaPosts, setInstaPosts] = useState([]);
@@ -32,36 +33,24 @@ const InstagramFeed = () => {
         
         {/* Section Header */}
         <div className="flex flex-col items-center justify-center text-center mb-4 md:mb-6">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4 }}
-            className="flex items-center justify-center w-10 h-10 bg-[#F2F6E8] rounded-full mb-3 text-[#054425]"
-          >
+          <ScrollHeading as="div" className="flex items-center justify-center w-10 h-10 bg-[#F2F6E8] rounded-full mb-3 text-[#054425]">
             <FiInstagram size={20} />
-          </motion.div>
-          <motion.h2 
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4, delay: 0.1 }}
+          </ScrollHeading>
+          <ScrollHeading 
+            as="h2"
             className="text-lg md:text-2xl font-serif font-black text-[#054425] tracking-tight mb-1"
           >
             Follow Us on Instagram
-          </motion.h2>
-          <motion.a
+          </ScrollHeading>
+          <ScrollHeading
+            as="a"
             href="https://www.instagram.com/sadabharatayurvedic?utm_source=qr"
             target="_blank"
             rel="noreferrer"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
             className="text-sm font-semibold text-[#D4AF37] hover:text-[#054425] transition-colors"
           >
             @sadabharatayurvedic
-          </motion.a>
+          </ScrollHeading>
         </div>
 
         {/* Instagram Grid */}

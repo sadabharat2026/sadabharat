@@ -16,6 +16,7 @@ const bannerSchema = new mongoose.Schema({
   price: { type: String },
   btnText: { type: String, default: 'SHOP NOW' },
   isVideo: { type: Boolean, default: false },
+  sequence: { type: Number, default: 0 },
   seoTitle: { type: String },
   seoDescription: { type: String },
   seoKeywords: { type: String },
