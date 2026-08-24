@@ -1,16 +1,81 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { FiHeart, FiStar, FiX, FiMinus, FiPlus } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useShop } from '../../context/ShopContext';
 import { useNavigate } from 'react-router-dom';
 import { getProductVariants, getCartQty, getCartQtyForProduct } from '../../utils/cart';
+import { getProductImages } from '../../utils/productImages';
+
+const imageSlideVariants = {
+  enter: (direction) => ({
+    x: direction > 0 ? 80 : -80,
+    opacity: 0
+  }),
+  center: {
+    zIndex: 1,
+    x: 0,
+    opacity: 1
+  },
+  exit: (direction) => ({
+    zIndex: 0,
+    x: direction < 0 ? 80 : -80,
+    opacity: 0
+  })
+};
 
 const ProductCard = ({ product, offerBannerText, badge }) => {
   const { cart, addToCart, removeFromCart, updateQuantity, toggleWishlist, isInWishlist, triggerFlyToCart, triggerFlyToWishlist } = useShop();
   const [showVariants, setShowVariants] = useState(false);
+  const [activeImg, setActiveImg] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+  const [inView, setInView] = useState(true);
+  const cardRef = useRef(null);
   const liked = isInWishlist(product._id);
   const navigate = useNavigate();
+
+  const cardImages = useMemo(() => getProductImages(product), [product]);
+  const currentImage = cardImages[activeImg] || cardImages[0] || product.image;
+  const canCarousel = cardImages.length > 1;
+  const reduceMotion = typeof window !== 'undefined'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  useEffect(() => {
+    setActiveImg(0);
+    setImgLoaded(false);
+  }, [product._id]);
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return undefined;
+    const io = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold: 0.2 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!canCarousel || isHovering || !inView || reduceMotion) return undefined;
+    const last = String(product._id || '0').slice(-1);
+    const stagger = (last.charCodeAt(0) % 5) * 180;
+    const timer = setTimeout(() => {
+      setDirection(1);
+      setActiveImg((prev) => (prev + 1) % cardImages.length);
+    }, 2500 + stagger);
+    return () => clearTimeout(timer);
+  }, [activeImg, canCarousel, isHovering, inView, reduceMotion, cardImages.length, product._id]);
+
+  const handleImageReady = () => setImgLoaded(true);
+  const firstImgRef = useRef(null);
+
+  useEffect(() => {
+    const el = firstImgRef.current;
+    if (el && el.complete && el.naturalWidth > 0) setImgLoaded(true);
+  }, [product._id, cardImages]);
 
   const variants = getProductVariants(product);
   const defaultSize = variants[0]?.size || product.packSize || null;
@@ -79,9 +144,17 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
   };
 
   return (
-    <div
+    <motion.div
+      ref={cardRef}
       onClick={handleCardClick}
-      className="bg-[#EBF5EE] border border-[#054425]/10 rounded-lg flex flex-col h-full group relative cursor-pointer hover:shadow-lg transition-all duration-300 overflow-hidden"
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+      initial={{ opacity: 0, y: 22 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -4 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      className="bg-[#EBF5EE] border border-[#054425]/10 rounded-lg flex flex-col h-full group relative cursor-pointer hover:shadow-lg transition-shadow duration-300 overflow-hidden"
     >
       {/* Corner Ribbon Badge — Top Left */}
       {badge === 'new' && (
@@ -106,7 +179,7 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
       )}
 
       {/* Product Image Panel */}
-      <div className="relative aspect-square overflow-hidden p-2 bg-white flex items-center justify-center">
+      <div className="relative aspect-square overflow-hidden bg-white min-w-0">
         
         {/* Special Offer Starburst Badge */}
         {offerBannerText && (
@@ -134,13 +207,54 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
           <FiHeart className={`w-3.5 h-3.5 ${liked ? 'fill-current' : ''}`} />
         </motion.button>
 
-        {/* Product Packshot */}
-        <img
-          src={product.image}
-          alt={product.name}
-          loading="lazy"
-          className="max-h-full max-w-full object-contain transition-transform duration-500 group-hover:scale-105"
-        />
+        {!imgLoaded && (
+          <div className="absolute inset-2 rounded-md product-card-shimmer-load z-[5]" />
+        )}
+
+        <AnimatePresence initial={false} custom={direction}>
+          <motion.div
+            key={currentImage || activeImg}
+            custom={direction}
+            variants={imageSlideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ x: { type: 'spring', stiffness: 280, damping: 32 }, opacity: { duration: 0.28 } }}
+            className="absolute inset-0 flex items-center justify-center p-2"
+          >
+            <img
+              src={currentImage}
+              alt={product.name}
+              loading={activeImg === 0 ? 'eager' : 'lazy'}
+              ref={firstImgRef}
+              onLoad={handleImageReady}
+              onError={handleImageReady}
+              className="max-h-full max-w-full object-contain relative z-[1]"
+            />
+          </motion.div>
+        </AnimatePresence>
+
+        <div className={`product-card-shimmer ${(!imgLoaded || isHovering || reduceMotion) ? 'is-paused' : ''}`} />
+
+        {canCarousel && (
+          <div className="absolute bottom-2 left-2 z-20 flex items-center gap-1">
+            {cardImages.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                aria-label={`Show image ${idx + 1}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDirection(idx > activeImg ? 1 : -1);
+                  setActiveImg(idx);
+                }}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  idx === activeImg ? 'w-3 bg-[#054425]' : 'w-1.5 bg-black/25 hover:bg-black/40'
+                }`}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Product Details Panel */}
@@ -295,7 +409,7 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
         </AnimatePresence>,
         document.body
       )}
-    </div>
+    </motion.div>
   );
 };
 

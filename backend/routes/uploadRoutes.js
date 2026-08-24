@@ -67,7 +67,7 @@ const uploadToCloudinary = (fileBuffer, originalname) => {
   });
 };
 
-router.post('/', upload.array('documents', 5), async (req, res) => {
+router.post('/', upload.array('documents', 10), async (req, res) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ message: 'No files uploaded' });
   }

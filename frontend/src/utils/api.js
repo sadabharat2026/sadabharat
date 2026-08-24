@@ -24,12 +24,16 @@ api.interceptors.request.use(
         } else if (isVendorScope) {
             token = localStorage.getItem('vendor_token') || localStorage.getItem('vendor_auth');
         } else {
-            token = localStorage.getItem('customer_token') || localStorage.getItem('admin_token');
+            token = localStorage.getItem('customer_token');
         }
 
         // Attach token if available
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
+        }
+
+        if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+            delete config.headers['Content-Type'];
         }
         
         return config;
@@ -53,9 +57,15 @@ api.interceptors.response.use(
 
         // Handle 401 Unauthorized Globally (e.g., token expired)
         if (error.response && error.response.status === 401) {
-            console.warn('Unauthorized: Token may have expired.');
-            // localStorage.clear(); 
-            // window.location.href = '/login'; 
+            const path = typeof window !== 'undefined' ? window.location.pathname : '';
+            if (path.startsWith('/admin')) {
+                localStorage.removeItem('admin_token');
+            } else if (path.startsWith('/vendor')) {
+                localStorage.removeItem('vendor_token');
+                localStorage.removeItem('vendor_auth');
+            } else {
+                localStorage.removeItem('customer_token');
+            }
         }
 
         // Handle 403 Forbidden

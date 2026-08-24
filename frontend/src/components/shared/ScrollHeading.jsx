@@ -1,76 +1,115 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 
+const extractText = (children) => {
+  if (children == null || typeof children === 'boolean') return '';
+  if (typeof children === 'string' || typeof children === 'number') return String(children);
+  if (Array.isArray(children)) return children.map(extractText).join(' ');
+  if (React.isValidElement(children)) return extractText(children.props.children);
+  return '';
+};
+
+const hasElementChildren = (children) =>
+  React.Children.toArray(children).some((child) => React.isValidElement(child));
+
+const lerp = (a, b, t) => a + (b - a) * Math.min(Math.max(t, 0), 1);
+
+const wordProgress = (p, index, count) => {
+  const t = count <= 1 ? 0 : index / (count - 1);
+  const inStart = t * 0.22;
+  const inEnd = inStart + 0.14;
+  const outStart = 0.7 + t * 0.12;
+  const outEnd = Math.min(outStart + 0.14, 1);
+  const v = Math.min(Math.max(p, 0), 1);
+
+  if (v <= inStart) return 0;
+  if (v < inEnd) return (v - inStart) / (inEnd - inStart);
+  if (v < outStart) return 1;
+  if (v < outEnd) return 1 - (v - outStart) / (outEnd - outStart);
+  return 0;
+};
+
+const ScrollWord = ({ word, index, count, scrollYProgress }) => {
+  const opacity = useTransform(scrollYProgress, (p) => lerp(0.18, 1, wordProgress(p, index, count)));
+  const y = useTransform(scrollYProgress, (p) => lerp(10, 0, wordProgress(p, index, count)));
+
+  return (
+    <motion.span
+      style={{ opacity, y }}
+      className="inline-block will-change-transform"
+    >
+      {word}
+      {index < count - 1 ? '\u00A0' : ''}
+    </motion.span>
+  );
+};
+
 /**
- * ScrollHeading Component
- * Implements smooth scroll-linked fade-in & fade-out / word reveal effect
- * inspired by award-winning sites like talwart.com.
- * When scrolling into view, opacity transitions from 0.15/0.2 -> 1 -> 0.15/0.2.
+ * Scroll-linked heading fill, adapted from Talwart-style word reveals.
+ * Words brighten as the heading enters, then fade as it leaves.
  */
 const ScrollHeading = ({
   children,
   className = '',
   as = 'h2',
   style = {},
-  variant = 'fade', // 'fade' | 'words'
+  variant,
   ...props
 }) => {
   const containerRef = useRef(null);
-
-  // Track the scroll progress of this specific heading container
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ['start end', 'end start']
+    offset: ['start 0.9', 'end 0.12']
   });
 
-  // Smooth scroll progression curves
-  // 0: below viewport (0.2 opacity, slight blur or offset)
-  // 0.25 - 0.75: in active viewing zone (1 opacity, 0 translateY)
-  // 1: scrolled past top (fading out smoothly back to 0.2)
-  const opacity = useTransform(scrollYProgress, [0, 0.28, 0.72, 1], [0.15, 1, 1, 0.15]);
-  const y = useTransform(scrollYProgress, [0, 0.28, 0.72, 1], [18, 0, 0, -18]);
-  const scale = useTransform(scrollYProgress, [0, 0.28, 0.72, 1], [0.97, 1, 1, 0.97]);
+  const text = useMemo(
+    () => extractText(children).replace(/\s+/g, ' ').trim(),
+    [children]
+  );
+  const words = useMemo(() => (text ? text.split(' ') : []), [text]);
+  const reduceMotion = typeof window !== 'undefined'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const useWords = !reduceMotion
+    && variant !== 'block'
+    && words.length > 0
+    && !hasElementChildren(children);
 
-  const Component = motion[as] || motion.h2;
+  const blockOpacity = useTransform(scrollYProgress, [0, 0.22, 0.78, 1], [0.18, 1, 1, 0.18]);
+  const blockY = useTransform(scrollYProgress, [0, 0.22, 0.78, 1], [14, 0, 0, -10]);
 
-  // If text is simple string and words reveal is desired
-  if (variant === 'words' && typeof children === 'string') {
-    const words = children.split(' ');
+  const Tag = motion[as] || motion.h2;
+
+  if (useWords) {
     return (
-      <span ref={containerRef} className={`inline-block ${className}`} style={style} {...props}>
-        {words.map((word, i) => {
-          const start = 0.1 + (i / words.length) * 0.25;
-          const end = start + 0.15;
-          // eslint-disable-next-line react-hooks/rules-of-hooks
-          const wordOpacity = useTransform(scrollYProgress, [0, start, end, 0.75, 1], [0.18, 0.18, 1, 1, 0.18]);
-          return (
-            <motion.span
-              key={i}
-              style={{ opacity: wordOpacity }}
-              className="inline-block mr-[0.25em] transition-colors"
-            >
-              {word}
-            </motion.span>
-          );
-        })}
-      </span>
+      <Tag
+        ref={containerRef}
+        className={className}
+        style={style}
+        aria-label={text}
+        {...props}
+      >
+        {words.map((word, i) => (
+          <ScrollWord
+            key={`${word}-${i}`}
+            word={word}
+            index={i}
+            count={words.length}
+            scrollYProgress={scrollYProgress}
+          />
+        ))}
+      </Tag>
     );
   }
 
   return (
-    <Component
+    <Tag
       ref={containerRef}
-      style={{
-        opacity,
-        y,
-        scale,
-        ...style
-      }}
+      style={{ opacity: blockOpacity, y: blockY, ...style }}
       className={className}
       {...props}
     >
       {children}
-    </Component>
+    </Tag>
   );
 };
 

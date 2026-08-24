@@ -1,4 +1,6 @@
 import React from 'react';
+import { motion } from 'framer-motion';
+import { revealContainer, revealItem } from '../shared/ScrollReveal';
 
 const FeaturesBar = () => {
   const features = [
@@ -51,15 +53,23 @@ const FeaturesBar = () => {
   return (
     <div className="bg-[#F4F8F5] border-t border-gray-100 py-4">
       <div className="w-full px-4 md:px-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 justify-items-center">
+        <motion.div
+          className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 justify-items-center"
+          variants={revealContainer}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.35 }}
+        >
           {features.map((item) => (
-            <div key={item.id} className="flex items-center gap-2.5 w-fit text-left">
-              {/* Feature Icon */}
+            <motion.div
+              key={item.id}
+              variants={revealItem}
+              whileHover={{ y: -3 }}
+              className="flex items-center gap-2.5 w-fit text-left"
+            >
               <div className="shrink-0 bg-white p-1.5 rounded-lg shadow-sm border border-gray-100">
                 {item.icon}
               </div>
-
-              {/* Details */}
               <div className="flex flex-col leading-none">
                 <span className="text-[11px] md:text-xs font-bold text-[#054425] uppercase tracking-wide"
                   style={{ fontFamily: "'Poppins', sans-serif" }}>
@@ -70,9 +80,9 @@ const FeaturesBar = () => {
                   {item.subtitle}
                 </span>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </div>
   );

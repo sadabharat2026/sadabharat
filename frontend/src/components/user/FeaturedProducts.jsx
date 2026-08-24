@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { useShop } from '../../context/ShopContext';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import ScrollHeading from '../shared/ScrollHeading';
+import ScrollReveal from '../shared/ScrollReveal';
 
 import 'swiper/css';
 
@@ -87,6 +88,7 @@ const FeaturedProducts = () => {
         </div>
 
         {/* Swiper with side floating arrows */}
+        <ScrollReveal y={20} amount={0.12}>
         <div className="relative">
           {/* Left Arrow */}
           <button
@@ -126,6 +128,7 @@ const FeaturedProducts = () => {
             ))}
           </Swiper>
         </div>
+        </ScrollReveal>
       </div>
     </section>
   );

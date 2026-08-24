@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import api from '../../utils/api';
 import ScrollHeading from '../shared/ScrollHeading';
+import ScrollReveal from '../shared/ScrollReveal';
 
 const TrendingOffers = () => {
   const [offers, setOffers] = useState([]);
@@ -50,12 +50,13 @@ const TrendingOffers = () => {
         </div>
 
         {/* Running Scroll Animation (Marquee) for Offers */}
-        <div className="w-full overflow-hidden relative">
-          <motion.div 
-            className="flex gap-4 md:gap-6 w-max"
-            animate={{ x: ["0%", "-50%"] }}
-            transition={{ repeat: Infinity, ease: "linear", duration: 25 }}
-          >
+        <ScrollReveal y={18} amount={0.15}>
+        <div
+          className="w-full overflow-hidden relative"
+          onMouseEnter={(e) => e.currentTarget.querySelector('.offer-marquee-track')?.classList.add('is-paused')}
+          onMouseLeave={(e) => e.currentTarget.querySelector('.offer-marquee-track')?.classList.remove('is-paused')}
+        >
+          <div className="offer-marquee-track flex gap-4 md:gap-6 w-max">
             {[...offers, ...offers].map((offer, index) => (
               <div
                 key={offer._id ? `${offer._id}-${index}` : index}
@@ -72,7 +73,7 @@ const TrendingOffers = () => {
                 {/* Overlay with details - Decreased opacity */}
                 <div className="absolute inset-0 bg-gradient-to-r from-white/70 via-white/40 to-transparent flex flex-col justify-center p-6 md:p-8 z-10">
                   <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
-                    {offer.badge.includes('Free') ? 'Gift Offer' : 'Deal'}
+                    {String(offer.badge || '').includes('Free') ? 'Gift Offer' : 'Deal'}
                   </span>
                   
                   {/* Main discount badge */}
@@ -95,8 +96,9 @@ const TrendingOffers = () => {
                 </div>
               </div>
             ))}
-          </motion.div>
+          </div>
         </div>
+        </ScrollReveal>
       </div>
     </section>
   );

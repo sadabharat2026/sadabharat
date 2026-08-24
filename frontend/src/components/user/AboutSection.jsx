@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import ScrollHeading from '../shared/ScrollHeading';
 
 import blogFloating1 from '../../assets/images/cat_wellness.png';
 import blogFloating2 from '../../assets/images/cat_skincare_new.png';
@@ -100,15 +101,16 @@ const AboutSection = () => {
             <motion.div
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
+              whileHover={{ y: -6 }}
               transition={{ duration: 0.8 }}
               className="bg-[#054425] text-white p-6 md:p-10 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden group"
             >
               {/* Decorative circle */}
               <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
               
-              <h2 className="text-2xl md:text-4xl font-serif font-bold mb-4 italic border-b border-white/20 pb-4">
+              <ScrollHeading as="h2" className="text-2xl md:text-4xl font-serif font-bold mb-4 italic border-b border-white/20 pb-4">
                 About Us
-              </h2>
+              </ScrollHeading>
               <p className="text-sm md:text-base leading-relaxed opacity-90  tracking-wide">
                 At Sada Bharat Ayurvedic, wellness is a way of life. It is about harmony, nature, and purity.
                 We are an authentic Indian Ayurvedic brand offering thoughtfully curated remedies and products
@@ -132,9 +134,9 @@ const AboutSection = () => {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="space-y-3"
             >
-              <h2 className="text-2xl md:text-4xl font-serif font-bold text-brand-dark italic">
+              <ScrollHeading as="h2" className="text-2xl md:text-4xl font-serif font-bold text-brand-dark italic">
                 Our Vision
-              </h2>
+              </ScrollHeading>
               <ul className="text-gray-600 leading-relaxed font-['Poppins'] space-y-2">
                 {visionPoints.map((point) => (
                   <li key={point} className="flex gap-2 items-start">
@@ -154,9 +156,9 @@ const AboutSection = () => {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="space-y-2"
             >
-              <h2 className="text-2xl md:text-3xl font-serif font-bold text-brand-dark italic">
+              <ScrollHeading as="h2" className="text-2xl md:text-3xl font-serif font-bold text-brand-dark italic">
                 Our Mission
-              </h2>
+              </ScrollHeading>
               <ul className="text-gray-600 leading-relaxed font-['Poppins'] space-y-2">
                 {missionPoints.map((point) => (
                   <li key={point} className="flex gap-2 items-start">
@@ -173,9 +175,9 @@ const AboutSection = () => {
               transition={{ duration: 0.8, delay: 0.5 }}
               className="space-y-2"
             >
-              <h2 className="text-2xl md:text-3xl font-serif font-bold text-brand-dark italic">
+              <ScrollHeading as="h2" className="text-2xl md:text-3xl font-serif font-bold text-brand-dark italic">
                 What Makes Us Different
-              </h2>
+              </ScrollHeading>
               <ul className="text-gray-600 leading-relaxed font-['Poppins'] space-y-2">
                 {differentiators.map((point) => (
                   <li key={point} className="flex gap-2 items-start">
@@ -192,9 +194,9 @@ const AboutSection = () => {
               transition={{ duration: 0.8, delay: 0.6 }}
               className="space-y-2"
             >
-              <h2 className="text-2xl md:text-3xl font-serif font-bold text-brand-dark italic">
+              <ScrollHeading as="h2" className="text-2xl md:text-3xl font-serif font-bold text-brand-dark italic">
                 Our Promise
-              </h2>
+              </ScrollHeading>
               <p className="text-gray-600 leading-relaxed font-['Poppins']">
                 Every order is more than a transaction. It is a relationship built on trust.
               </p>

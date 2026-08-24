@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Upload, X, CheckCircle, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../../utils/api';
+import { getProductImages, isUsableImageUrl } from '../../utils/productImages';
+import { uploadImageFiles } from '../../utils/uploadImages';
 
 const VendorAddProduct = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const editProduct = location.state?.product || null;
 
-  const [images, setImages] = useState(editProduct ? [editProduct.image].filter(Boolean) : []);
+  const [images, setImages] = useState(editProduct ? getProductImages(editProduct) : []);
   const [name, setName] = useState(editProduct?.name || '');
   const [description, setDescription] = useState(editProduct?.description || '');
   const [ingredients, setIngredients] = useState(editProduct?.ingredients || '');
@@ -51,11 +53,21 @@ const VendorAddProduct = () => {
   const [variants, setVariants] = useState([
     { size: '100 ml', price: '', oldPrice: '', stock: '', sku: '' }
   ]);
+  const [isUploading, setIsUploading] = useState(false);
 
-  // Mock handling drag and drop or file select
-  const handleFileChange = (e) => {
-    if (images.length < 4) {
-      setImages([...images, `https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=500&auto=format&fit=crop&q=60`]);
+  const handleFileChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!files.length) return;
+
+    setIsUploading(true);
+    try {
+      const uploaded = await uploadImageFiles(files);
+      setImages((prev) => [...prev, ...uploaded]);
+    } catch (err) {
+      alert('Upload failed: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -81,7 +93,12 @@ const VendorAddProduct = () => {
       return;
     }
 
-    const newId = 'custom-prod-' + Date.now();
+    const gallery = images.filter(isUsableImageUrl);
+    if (!gallery.length) {
+      alert('Please upload at least one product image.');
+      return;
+    }
+
     let finalPrice = parseFloat(price) || 299;
     let finalOldPrice = parseFloat(oldPrice) || 399;
     let processedVariants = [];
@@ -106,9 +123,20 @@ const VendorAddProduct = () => {
       oldPrice: finalOldPrice,
       rating: 0,
       reviews: 0,
-      image: images.length > 0 ? images[0] : 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=500&auto=format&fit=crop&q=60',
+      images: gallery,
+      image: gallery[0],
       category: category !== 'Select Category' ? category : 'Wellness',
       description,
+      ingredients,
+      benefits,
+      dosage,
+      disclaimer,
+      hasVariants,
+      variants: processedVariants,
+      prescriptionRequired,
+      noRefund,
+      codAvailable,
+      tags,
       packSize: hasVariants ? processedVariants[0].size : 'Standard',
       bestseller: false,
       recommended: false
@@ -116,14 +144,12 @@ const VendorAddProduct = () => {
 
     try {
       if (editProduct) {
-        console.log("Updating product:", newProduct);
         const res = await api.put(`/products/${editProduct._id}`, newProduct);
         if (res.data.success) {
           window.showVendorToast?.('Product updated successfully!', 'success');
           navigate(`/vendor/products`);
         }
       } else {
-        console.log("Submitting new product:", newProduct);
         const res = await api.post('/products', newProduct);
         if (res.data.success) {
           window.showVendorToast?.('Product submitted successfully! It is now pending admin approval.', 'success');
@@ -132,7 +158,6 @@ const VendorAddProduct = () => {
       }
     } catch (error) {
       console.error("Product submission failed:", error);
-      console.error("Response data:", error.response?.data);
       alert(error.response?.data?.message || 'Failed to submit product');
     }
   };
@@ -350,14 +375,17 @@ const VendorAddProduct = () => {
 
           <div className="bg-white p-4 rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-gray-100">
             <h3 className="font-bold text-gray-900 mb-3 text-[13px]">Product Media</h3>
+            <p className="text-[11px] text-gray-500 mb-3">
+              Upload more than one photo. Extra images auto-scroll on product cards.
+            </p>
 
-            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer relative">
-              <input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleFileChange} multiple accept="image/*" />
+            <div className={`border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer relative ${isUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+              <input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleFileChange} multiple accept="image/*" disabled={isUploading} />
               <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm text-[#054425]">
                 <Upload size={20} />
               </div>
-              <p className="text-[12px] font-bold text-gray-900 mb-0.5">Click to upload or drag & drop</p>
-              <p className="text-[10px] text-gray-500 font-sans">SVG, PNG, JPG or GIF (max. 800x400px)</p>
+              <p className="text-[12px] font-bold text-gray-900 mb-0.5">{isUploading ? 'Uploading photos...' : 'Click to upload or drag & drop'}</p>
+              <p className="text-[10px] text-gray-500 font-sans">PNG, JPG or WEBP — add 2+ images for the card carousel</p>
             </div>
 
             {images.length > 0 && (

@@ -1,6 +1,20 @@
 const Product = require('../models/productModel');
 const Inventory = require('../models/inventoryModel');
 
+const isUsableImageUrl = (url) =>
+  typeof url === 'string' && url.trim() !== '' && !url.startsWith('blob:');
+
+const normalizeProductMedia = (body = {}) => {
+  const images = [...new Set([
+    ...(Array.isArray(body.images) ? body.images : []),
+    body.image,
+  ].filter(isUsableImageUrl))];
+  return {
+    images,
+    image: images[0] || body.image
+  };
+};
+
 // Helper to inject stock into product responses
 const injectStock = async (products) => {
   const isArray = Array.isArray(products);
@@ -37,7 +51,7 @@ const getProducts = async (req, res) => {
 // @access  Private (Vendor/Admin)
 const createProduct = async (req, res) => {
   try {
-    const productData = { ...req.body };
+    const productData = { ...req.body, ...normalizeProductMedia(req.body) };
     
     // Check if the creator is an admin or a vendor
     if (req.user.role === 'admin') {
@@ -181,10 +195,14 @@ const updateProduct = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized to update this product' });
     }
 
-    product = await Product.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    });
+    product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { ...req.body, ...normalizeProductMedia(req.body) },
+      {
+        new: true,
+        runValidators: true
+      }
+    );
 
     const productWithStock = await injectStock(product);
     res.status(200).json({ success: true, data: productWithStock });

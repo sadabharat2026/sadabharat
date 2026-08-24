@@ -12,6 +12,7 @@ import api from '../../utils/api';
 import ChatWindow from '../shared/ChatWindow';
 import { getConversationId } from '../../services/chatService';
 import { getProductVariants, getCartQty, resolveSelectedSize } from '../../utils/cart';
+import { getProductImages } from '../../utils/productImages';
 
 import ConsultationCTA from './ConsultationCTA';
 import ProductCard from './ProductCard';
@@ -203,6 +204,7 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
 
   const product = products.find(p => p._id === id);
+  const galleryImages = getProductImages(product);
 
   // Review States
   const [reviews, setReviews] = useState([]);
@@ -354,7 +356,7 @@ const ProductDetail = () => {
     }
 
     if (triggerFlyToCart) {
-      triggerFlyToCart(e, (product.gallery && product.gallery[selectedImageIndex]) || product.image);
+      triggerFlyToCart(e, galleryImages[selectedImageIndex] || product.image);
     }
 
     addToCart({
@@ -423,21 +425,17 @@ const ProductDetail = () => {
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
                   </button>
                   <div className="flex md:flex-col gap-4">
-                    {[0, 1, 2, 3].map((idx) => {
-                      const img = (Array.isArray(product.gallery) && product.gallery[idx]) || (idx === 0 ? product.image : null);
-                      if (!img) return null;
-                      return (
+                    {galleryImages.map((img, idx) => (
                         <button
-                          key={idx}
+                          key={`${img}-${idx}`}
                           onClick={() => setSelectedImageIndex(idx)}
                           className={`w-16 h-16 md:w-[76px] md:h-[76px] shrink-0 rounded-md overflow-hidden transition-all border-2 bg-white shadow-sm ${selectedImageIndex === idx ? 'border-[#054425]' : 'border-gray-100 hover:border-gray-300'}`}
                         >
                           <img src={img} alt={`${product.name} ${idx}`} className="w-full h-full object-cover" />
                         </button>
-                      );
-                    })}
+                    ))}
                   </div>
-                  <button className="hidden md:flex items-center justify-center p-1 text-gray-600 hover:text-black transition-colors bg-white rounded-full shadow-sm w-9 h-9 border border-gray-200" onClick={() => setSelectedImageIndex(prev => Math.min(3, prev + 1))}>
+                  <button className="hidden md:flex items-center justify-center p-1 text-gray-600 hover:text-black transition-colors bg-white rounded-full shadow-sm w-9 h-9 border border-gray-200" onClick={() => setSelectedImageIndex(prev => Math.min(Math.max(galleryImages.length - 1, 0), prev + 1))}>
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                   </button>
                 </div>
@@ -448,7 +446,7 @@ const ProductDetail = () => {
                     key={selectedImageIndex}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    src={(Array.isArray(product.gallery) && product.gallery[selectedImageIndex]) || product.image}
+                    src={galleryImages[selectedImageIndex] || product.image}
                     alt={product.name}
                     className="max-w-full max-h-full object-contain drop-shadow-2xl scale-95 hover:scale-100 transition-transform duration-700"
                   />

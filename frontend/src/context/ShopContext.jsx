@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import api from '../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import realApi from '../utils/api';
+import { initializePushNotifications } from '../services/pushNotificationService';
 
 const ShopContext = createContext();
 
@@ -220,8 +221,13 @@ export const ShopProvider = ({ children }) => {
   useEffect(() => {
     fetchData();
     checkAuth();
-
   }, [fetchData, checkAuth]);
+
+  useEffect(() => {
+    if (!isAuthLoading && isAuthenticated) {
+      initializePushNotifications();
+    }
+  }, [isAuthLoading, isAuthenticated]);
 
   useEffect(() => {
     localStorage.setItem('sadabharat_cart', JSON.stringify(cart));

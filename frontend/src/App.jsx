@@ -38,7 +38,7 @@ import ScrollToTop from './components/user/ScrollToTop';
 import MetaPixelTracker from './components/tracking/MetaPixelTracker';
 import RaiseTicket from './components/user/RaiseTicket';
 import Consultation from './components/user/Consultation';
-import { initializePushNotifications, setupForegroundNotificationHandler } from './services/pushNotificationService';
+import { setupForegroundNotificationHandler } from './services/pushNotificationService';
 
 // Policy Imports
 import PrivacyPolicy from './components/user/policies/PrivacyPolicy';
@@ -292,6 +292,11 @@ function App() {
 
     window.lenis = lenis;
 
+    const onLenisScroll = () => {
+      window.dispatchEvent(new Event('scroll'));
+    };
+    lenis.on('scroll', onLenisScroll);
+
     function raf(time) {
       lenis.raf(time);
       requestAnimationFrame(raf);
@@ -300,12 +305,12 @@ function App() {
     requestAnimationFrame(raf);
 
     return () => {
+      lenis.off('scroll', onLenisScroll);
       lenis.destroy();
     };
   }, []);
 
   React.useEffect(() => {
-    initializePushNotifications();
     setupForegroundNotificationHandler((payload) => {
       console.log('App: Foreground notification received:', payload);
     });

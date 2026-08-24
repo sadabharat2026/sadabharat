@@ -78,7 +78,6 @@ async function registerFCMToken(forceUpdate = false) {
       throw new Error('FCM: Failed to retrieve token');
     }
     
-    // Save to backend using our custom interceptor api instance
     const response = await api.post('/notifications/save-fcm-token', { token });
     
     if (response.data?.success) {
@@ -89,6 +88,9 @@ async function registerFCMToken(forceUpdate = false) {
       throw new Error(response.data?.message || 'FCM: Backend registration failed');
     }
   } catch (error) {
+    if (error.response?.status === 401) {
+      return null;
+    }
     console.error('FCM: Error registering token:', error);
     throw error;
   }
@@ -134,7 +136,9 @@ async function initializePushNotifications() {
       await registerFCMToken();
     }
   } catch (error) {
-    console.error('FCM: Error during initialization:', error);
+    if (error.response?.status !== 401) {
+      console.error('FCM: Error during initialization:', error);
+    }
   }
 }
 

@@ -63,8 +63,9 @@ const InstagramFeed = () => {
               rel="noreferrer"
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
+              whileHover={{ y: -6 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
+              transition={{ duration: 0.45, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
               className={`relative aspect-square overflow-hidden group rounded-xl ${index === 4 ? 'hidden md:block' : ''}`}
             >
               <img 

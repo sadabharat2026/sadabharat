@@ -21,6 +21,8 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { useShop } from '../../context/ShopContext';
 
 import api from '../../utils/api';
+import { getProductImages, isUsableImageUrl } from '../../utils/productImages';
+import { uploadImageFiles } from '../../utils/uploadImages';
 
 
 
@@ -28,7 +30,7 @@ const BRA_SIZES = ['32B', '34B', '36B', '38B', '40B', '32C', '34C', '36C', '38C'
 const GENERAL_SIZES = ['S', 'M', 'L', 'XL', 'XXL', '3XL'];
 
 const AdminProducts = () => {
-  const { categories } = useShop();
+  const { categories, fetchData } = useShop();
   const [adminProducts, setAdminProducts] = useState([]);
   
   const fetchAdminProducts = useCallback(async () => {
@@ -94,15 +96,16 @@ const AdminProducts = () => {
   };
 
   const handleImageChange = async (e) => {
-    const files = Array.from(e.target.files);
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
     if (!files.length) return;
 
     setIsUploading(true);
     try {
-      const newImages = files.map(file => URL.createObjectURL(file));
+      const newImages = await uploadImageFiles(files);
       setForm(prev => ({ ...prev, images: [...(prev.images || []), ...newImages] }));
     } catch (err) {
-      alert('Upload failed: ' + err.message);
+      alert('Upload failed: ' + (err.response?.data?.message || err.message));
     } finally {
       setIsUploading(false);
     }
@@ -201,7 +204,7 @@ const AdminProducts = () => {
       oldPrice: product.oldPrice || '',
       stock: product.stock || '',
       sku: product.sku || '',
-      images: Array.isArray(product.images) ? product.images : (product.image ? [product.image] : []),
+      images: getProductImages(product),
       prescriptionRequired: product.prescriptionRequired || false,
       noRefund: product.noRefund || false,
       codAvailable: product.codAvailable || false,
@@ -220,16 +223,22 @@ const AdminProducts = () => {
 
     setIsSubmitting(true);
     try {
+      const images = (form.images || []).filter(isUsableImageUrl);
+      if (!images.length) {
+        alert('Please upload at least one product image.');
+        setIsSubmitting(false);
+        return;
+      }
+
       const payload = {
         ...form,
-        image: form.images?.[0] || '', // Fallback for table view
+        images,
+        image: images[0],
         status: 'approved',
         price: form.hasVariants ? Number(form.variants[0]?.price || 0) : Number(form.price || 0),
         oldPrice: form.hasVariants ? Number(form.variants[0]?.oldPrice || 0) : Number(form.oldPrice || 0),
         stock: form.hasVariants ? Number(form.variants[0]?.stock || 0) : Number(form.stock || 0),
       };
-
-      console.log('Saving product with payload:', payload);
 
       if (editingProduct) {
         await api.put(`/products/${editingProduct._id}`, payload);
@@ -246,6 +255,7 @@ const AdminProducts = () => {
         noRefund: false, codAvailable: false, category: '', tags: ''
       });
       fetchAdminProducts();
+      if (typeof fetchData === 'function') fetchData();
     } catch (err) {
       console.error('Error saving product:', err);
       console.error('Error response:', err.response?.data);
@@ -681,14 +691,17 @@ const AdminProducts = () => {
 
           <div className="bg-white p-4 rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-gray-100">
             <h3 className="font-bold text-gray-900 mb-3 text-[13px]">Product Media</h3>
+            <p className="text-[11px] text-gray-500 mb-3">
+              Upload more than one photo. Extra images auto-scroll on product cards, like the home banners.
+            </p>
 
-            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer relative">
-              <input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleImageChange} multiple accept="image/*" />
+            <div className={`border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer relative ${isUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+              <input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleImageChange} multiple accept="image/*" disabled={isUploading} />
               <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm text-[#054425]">
                 <FiUploadCloud size={20} />
               </div>
-              <p className="text-[12px] font-bold text-gray-900 mb-0.5">Click to upload or drag & drop</p>
-              <p className="text-[10px] text-gray-500 font-sans">SVG, PNG, JPG or GIF (max. 800x400px)</p>
+              <p className="text-[12px] font-bold text-gray-900 mb-0.5">{isUploading ? 'Uploading photos...' : 'Click to upload or drag & drop'}</p>
+              <p className="text-[10px] text-gray-500 font-sans">PNG, JPG or WEBP — add 2+ images for the card carousel</p>
             </div>
 
             {form.images.length > 0 && (
