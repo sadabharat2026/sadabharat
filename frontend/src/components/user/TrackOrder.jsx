@@ -188,7 +188,7 @@ const TrackOrder = () => {
                         <div>
                             <p className="text-[10px] md:text-xs font-['Poppins'] text-gray-500 mb-0.5">Courier Partner</p>
                             <p className="text-[11px] md:text-xs font-['Poppins'] text-gray-700 flex items-center gap-1.5">
-                                <FiTruck size={12} className="text-gray-400" /> Express Logistics
+                                <FiTruck size={12} className="text-gray-400" /> {order.courierName || 'Express Logistics'}
                             </p>
                         </div>
                     </div>

@@ -131,8 +131,7 @@ const createOrder = async (req, res) => {
       console.error('FCM: Error sending order creation notifications:', notifErr);
     }
 
-    // Trigger Shiprocket automated flow asynchronously
-    processShiprocketOrder(createdOrder._id).catch(err => {
+    processShiprocketOrder(createdOrder._id).catch((err) => {
       console.error('Failed to process Shiprocket flow for COD order:', err.message);
     });
 
@@ -263,8 +262,7 @@ const verifyRazorpayOrder = async (req, res) => {
       console.error('FCM: Error sending Razorpay order notifications:', notifErr);
     }
 
-    // Trigger Shiprocket automated flow asynchronously
-    processShiprocketOrder(createdOrder._id).catch(err => {
+    processShiprocketOrder(createdOrder._id).catch((err) => {
       console.error('Failed to process Shiprocket flow for online order:', err.message);
     });
 

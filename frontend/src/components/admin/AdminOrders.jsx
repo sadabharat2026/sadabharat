@@ -262,6 +262,12 @@ const AdminOrders = () => {
                           <span>{selectedOrder.courierName}</span>
                         </div>
                       )}
+                      {selectedOrder.shippingStatus && (
+                        <div className="flex justify-between">
+                          <span className="font-semibold">Status:</span>
+                          <span>{selectedOrder.shippingStatus}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -405,7 +411,7 @@ const AdminOrders = () => {
               </div>
               <h2 className="text-xl font-bold text-gray-900 mb-2">Ready to Ship?</h2>
               <p className="text-sm text-gray-500 mb-6">
-                This will automatically assign a courier and generate a shipping label for this order.
+                This will generate the shipping label, AWB code, and schedule a pickup with the courier.
               </p>
               <div className="flex gap-3 justify-center">
                 <button

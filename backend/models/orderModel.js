@@ -113,8 +113,9 @@ const orderSchema = new mongoose.Schema({
     ifscCode: String
   },
   
-  // Shiprocket Integration Fields
+  // Shipping / courier fields
   shiprocketOrderId: { type: String },
+  dtdcReferenceNumber: { type: String },
   shipmentId: { type: String },
   awbCode: { type: String },
   courierName: { type: String },

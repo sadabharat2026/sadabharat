@@ -154,7 +154,7 @@ const initialSettings = {
   deliveryCharge: 50,
   freeDeliveryThreshold: 1000,
   estDeliveryDays: '3-5 Business Days',
-  shippingPartner: 'Standard Courier',
+  shippingPartner: 'DTDC',
   trackingUrl: 'https://shiprocket.co/tracking/',
   supportContact: '+91 74071 75567'
 };
