@@ -5,6 +5,12 @@ import api from '../../utils/api';
 
 const AdminInventory = () => {
   const [products, setProducts] = useState([]);
+  const [summary, setSummary] = useState({
+    outOfStockCount: 0,
+    lowStockCount: 0,
+    healthyStockCount: 0,
+    valuationLabel: '₹0.00L'
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('All Stock');
   const [editingId, setEditingId] = useState(null);
@@ -16,6 +22,7 @@ const AdminInventory = () => {
       const res = await api.get('/products/admin');
       if (res.data.success) {
         setProducts(res.data.data);
+        if (res.data.summary) setSummary(res.data.summary);
       }
     } catch (err) {
       console.error('Failed to fetch admin inventory:', err);
@@ -44,7 +51,7 @@ const AdminInventory = () => {
     id: p._id,
     name: p.name,
     sku: p.sku || `SB-${p._id.slice(-6).toUpperCase()}`,
-    stock: p.stock !== undefined ? p.stock : 100,
+    stock: p.stock ?? 0,
     price: p.price || 0,
     vendorName: p.vendor?.fullName || p.vendor?.storeName || (p.admin ? (p.admin.name || 'Admin') : 'System'),
     alert: 15,
@@ -62,10 +69,9 @@ const AdminInventory = () => {
     return matchesSearch;
   });
 
-  const outOfStockCount = inventoryItems.filter(i => i.stock === 0).length;
-  const lowStockCount = inventoryItems.filter(i => i.stock > 0 && i.stock < i.alert).length;
-  const healthyStockCount = inventoryItems.filter(i => i.stock >= i.alert).length;
-  const totalValuation = inventoryItems.reduce((acc, item) => acc + (item.price * item.stock), 0);
+  const outOfStockCount = summary.outOfStockCount ?? 0;
+  const lowStockCount = summary.lowStockCount ?? 0;
+  const healthyStockCount = summary.healthyStockCount ?? 0;
 
   return (
     <div className="space-y-4 pb-6 max-w-[1400px] mx-auto -mt-2">
@@ -119,7 +125,7 @@ const AdminInventory = () => {
           <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-purple-600 shadow-sm"><Database size={20} /></div>
           <div>
             <p className="text-[11px] font-bold text-purple-600 uppercase tracking-wide mb-0.5">Vault Valuation</p>
-            <h3 className="text-xl font-medium text-gray-800 font-sans">₹{(totalValuation / 100000).toFixed(2)}L</h3>
+            <h3 className="text-xl font-medium text-gray-800 font-sans">{summary.valuationLabel}</h3>
           </div>
         </motion.div>
       </div>

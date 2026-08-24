@@ -16,6 +16,7 @@ const orderSchema = new mongoose.Schema({
       name: { type: String, required: true },
       qty: { type: Number, required: true },
       price: { type: Number, required: true },
+      lineTotal: { type: Number },
       image: { type: String },
       vendor: {
         type: mongoose.Schema.Types.ObjectId,
@@ -71,6 +72,9 @@ const orderSchema = new mongoose.Schema({
     required: true,
     default: 0.0
   },
+  couponCode: { type: String },
+  discountAmount: { type: Number, default: 0 },
+  taxRate: { type: Number, default: 0 },
   isPaid: {
     type: Boolean,
     required: true,

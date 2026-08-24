@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { parseApiError } from './errorHandler';
+import { optimizeMediaUrls } from './productImages';
 
 // 1. Create a common Axios instance
 const api = axios.create({
@@ -46,7 +47,9 @@ api.interceptors.request.use(
 // 3. Response Interceptor (Global Error Handling Flow)
 api.interceptors.response.use(
     (response) => {
-        // Any status code within the range of 2xx triggers this
+        if (response?.data) {
+            response.data = optimizeMediaUrls(response.data);
+        }
         return response;
     },
     (error) => {

@@ -15,10 +15,11 @@ router.route('/payouts').get(getAdminPayouts);
 router.route('/payouts/:vendorId/clear').post(clearVendorPayout);
 
 // Reviews routes
-const { getAdminReviews, toggleReviewApproval, deleteReview } = require('../controllers/adminController');
-router.route('/reviews').get(getAdminReviews);
-router.route('/reviews/:id/toggle-approval').patch(toggleReviewApproval);
-router.route('/reviews/:id').delete(deleteReview);
+const { getAdminReviews, toggleReviewApproval, deleteReview, replyReview } = require('../controllers/adminController');
+router.route('/reviews').get(protect, authorize('admin'), getAdminReviews);
+router.route('/reviews/:id/toggle-approval').patch(protect, authorize('admin'), toggleReviewApproval);
+router.route('/reviews/:id/reply').patch(protect, authorize('admin'), replyReview);
+router.route('/reviews/:id').delete(protect, authorize('admin'), deleteReview);
 
 // Testimonials routes
 const { 

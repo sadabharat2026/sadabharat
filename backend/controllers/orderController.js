@@ -1,82 +1,107 @@
 const Order = require('../models/orderModel');
-const Product = require('../models/productModel');
+const Coupon = require('../models/couponModel');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const { sendNotificationToUser } = require('../utils/pushNotificationHelper');
 const { processShiprocketOrder } = require('./shipping.controller');
-// @desc    Create new order
-// @route   POST /api/orders
-// @access  Private
+const { computeOrderQuote } = require('../utils/pricing');
+
+const quoteItemsPayload = (items = []) => items.map((item) => ({
+  product: item.product || item._id,
+  quantity: item.quantity || item.qty || 1,
+  size: item.size || item.selectedSize || null,
+  image: item.image
+}));
+
+const savePricedOrder = async ({ userId, quote, shippingAddress, paymentMethod, paymentResult, isPaid }) => {
+  const orderItems = quote.items.map((item) => ({
+    product: item.product,
+    name: item.name,
+    qty: item.quantity,
+    price: item.price,
+    lineTotal: item.lineTotal,
+    image: item.image || '',
+    vendor: item.vendor,
+    admin: item.admin,
+    status: 'Processing'
+  }));
+
+  const order = await Order.create({
+    user: userId,
+    orderItems,
+    shippingAddress,
+    paymentMethod,
+    paymentResult,
+    itemsPrice: quote.subtotal,
+    taxPrice: quote.taxAmount,
+    shippingPrice: quote.shippingAmount,
+    totalPrice: quote.total,
+    couponCode: quote.coupon?.code || '',
+    discountAmount: quote.discountAmount || 0,
+    taxRate: quote.taxRate || 0,
+    isPaid: Boolean(isPaid),
+    paidAt: isPaid ? Date.now() : undefined
+  });
+
+  if (quote.coupon?.code) {
+    await Coupon.updateOne({ code: quote.coupon.code }, { $inc: { usedCount: 1 } });
+  }
+
+  const Earning = require('../models/earningModel');
+  for (const item of order.orderItems) {
+    if (!item.vendor) continue;
+    const commissionRate = 15;
+    const itemTotal = item.lineTotal != null ? item.lineTotal : item.price * item.qty;
+    const commissionAmount = (itemTotal * commissionRate) / 100;
+    await Earning.create({
+      vendor: item.vendor,
+      order: order._id,
+      orderItem: item._id,
+      productName: item.name,
+      totalAmount: itemTotal,
+      commissionRate,
+      commissionAmount,
+      netEarning: itemTotal - commissionAmount,
+      status: 'Pending'
+    });
+  }
+
+  return order;
+};
+
+const quoteOrder = async (req, res) => {
+  try {
+    const quote = await computeOrderQuote({
+      items: quoteItemsPayload(req.body.items),
+      couponCode: req.body.couponCode,
+      paymentMethod: req.body.paymentMethod
+    });
+    res.status(200).json({ success: true, data: quote });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 const createOrder = async (req, res) => {
   try {
-    const {
-      items,
-      shippingAddress,
-      paymentMethod,
-      taxAmount,
-      shippingAmount,
-      totalAmount
-    } = req.body;
-
+    const { items, shippingAddress, paymentMethod, couponCode } = req.body;
     if (!items || items.length === 0) {
       return res.status(400).json({ success: false, message: 'No order items' });
     }
 
-    // Process items to get accurate data and vendor/admin mapping
-    const orderItems = await Promise.all(items.map(async (item) => {
-      const product = await Product.findById(item.product);
-      if (!product) throw new Error(`Product not found: ${item.product}`);
-      
-      return {
-        product: product._id,
-        name: product.name,
-        qty: item.quantity || 1,
-        price: product.price, // Security: Use DB price, not frontend price
-        image: product.images?.[0]?.url || item.image || '',
-        vendor: product.vendor, // Security: Assign owner based on DB
-        admin: product.admin,
-        status: 'Processing'
-      };
-    }));
-
-    const itemsPrice = orderItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
-
-    const order = new Order({
-      user: req.user._id,
-      orderItems,
-      shippingAddress,
-      paymentMethod,
-      itemsPrice,
-      taxPrice: taxAmount || 0,
-      shippingPrice: shippingAmount || 0,
-      totalPrice: totalAmount, // Accept final total taking coupons into account
-      isPaid: false
+    const quote = await computeOrderQuote({
+      items: quoteItemsPayload(items),
+      couponCode,
+      paymentMethod: paymentMethod || 'COD'
     });
 
-    const createdOrder = await order.save();
-
-    // Create Earning records for vendor products
-    const Earning = require('../models/earningModel');
-    for (const item of createdOrder.orderItems) {
-      if (item.vendor) {
-        const commissionRate = 15; // Default 15% platform commission
-        const itemTotal = item.price * item.qty;
-        const commissionAmount = (itemTotal * commissionRate) / 100;
-        const netEarning = itemTotal - commissionAmount;
-
-        await Earning.create({
-          vendor: item.vendor,
-          order: createdOrder._id,
-          orderItem: item._id,
-          productName: item.name,
-          totalAmount: itemTotal,
-          commissionRate,
-          commissionAmount,
-          netEarning,
-          status: 'Pending' // Initially pending until delivered
-        });
-      }
-    }
+    const createdOrder = await savePricedOrder({
+      userId: req.user._id,
+      quote,
+      shippingAddress,
+      paymentMethod: paymentMethod || 'COD',
+      isPaid: false
+    });
 
     // Trigger push notifications
     try {
@@ -130,21 +155,25 @@ const createOrder = async (req, res) => {
 // @access  Private
 const createRazorpayOrder = async (req, res) => {
   try {
-    const { amount } = req.body;
-    
-    // Check if RAZORPAY_KEY_ID is available, otherwise return mock
+    const quote = await computeOrderQuote({
+      items: quoteItemsPayload(req.body.items || []),
+      couponCode: req.body.couponCode,
+      paymentMethod: 'paynow'
+    });
+
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-       console.warn('Razorpay keys not found. Returning mock order id.');
-       return res.status(200).json({
-          success: true,
-          data: {
-             order: {
-                id: 'mock_order_' + Date.now(),
-                amount: amount * 100,
-                currency: 'INR'
-             }
+      console.warn('Razorpay keys not found. Returning mock order id.');
+      return res.status(200).json({
+        success: true,
+        data: {
+          quote,
+          order: {
+            id: 'mock_order_' + Date.now(),
+            amount: Math.round(quote.total * 100),
+            currency: 'INR'
           }
-       });
+        }
+      });
     }
 
     const instance = new Razorpay({
@@ -152,19 +181,17 @@ const createRazorpayOrder = async (req, res) => {
       key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
 
-    const options = {
-      amount: Math.round(amount * 100), // amount in smallest currency unit
-      currency: "INR",
-      receipt: "receipt_order_" + Date.now(),
-    };
+    const order = await instance.orders.create({
+      amount: Math.round(quote.total * 100),
+      currency: 'INR',
+      receipt: 'receipt_order_' + Date.now(),
+    });
 
-    const order = await instance.orders.create(options);
+    if (!order) return res.status(500).send('Some error occured');
 
-    if (!order) return res.status(500).send("Some error occured");
-
-    res.status(200).json({ success: true, data: { order } });
+    res.status(200).json({ success: true, data: { order, quote } });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 
@@ -188,35 +215,16 @@ const verifyRazorpayOrder = async (req, res) => {
       }
     }
 
-    // Now we create the actual order in MongoDB, similar to createOrder
-    const {
-      items,
-      shippingAddress,
-      taxAmount,
-      shippingAmount,
-      totalAmount
-    } = orderDetails;
+    const { items, shippingAddress, couponCode } = orderDetails || {};
+    const quote = await computeOrderQuote({
+      items: quoteItemsPayload(items || []),
+      couponCode,
+      paymentMethod: 'paynow'
+    });
 
-    const orderItems = await Promise.all(items.map(async (item) => {
-      const product = await Product.findById(item.product);
-      if (!product) throw new Error(`Product not found: ${item.product}`);
-      return {
-        product: product._id,
-        name: product.name,
-        qty: item.quantity || 1,
-        price: product.price,
-        image: product.images?.[0]?.url || item.image || '',
-        vendor: product.vendor,
-        admin: product.admin,
-        status: 'Processing'
-      };
-    }));
-
-    const itemsPrice = orderItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
-
-    const order = new Order({
-      user: req.user._id,
-      orderItems,
+    const createdOrder = await savePricedOrder({
+      userId: req.user._id,
+      quote,
       shippingAddress,
       paymentMethod: 'Online',
       paymentResult: {
@@ -224,37 +232,8 @@ const verifyRazorpayOrder = async (req, res) => {
         status: 'completed',
         update_time: new Date().toISOString()
       },
-      itemsPrice,
-      taxPrice: taxAmount || 0,
-      shippingPrice: shippingAmount || 0,
-      totalPrice: totalAmount,
-      isPaid: true,
-      paidAt: Date.now()
+      isPaid: true
     });
-
-    const createdOrder = await order.save();
-
-    const Earning = require('../models/earningModel');
-    for (const item of createdOrder.orderItems) {
-      if (item.vendor) {
-        const commissionRate = 15;
-        const itemTotal = item.price * item.qty;
-        const commissionAmount = (itemTotal * commissionRate) / 100;
-        const netEarning = itemTotal - commissionAmount;
-
-        await Earning.create({
-          vendor: item.vendor,
-          order: createdOrder._id,
-          orderItem: item._id,
-          productName: item.name,
-          totalAmount: itemTotal,
-          commissionRate,
-          commissionAmount,
-          netEarning,
-          status: 'Pending'
-        });
-      }
-    }
 
     // Trigger push notifications
     try {
@@ -354,11 +333,13 @@ const getVendorOrders = async (req, res) => {
 
     // Filter the items array in each order so the vendor ONLY sees their own products
     const filteredOrders = orders.map(order => {
-      order.orderItems = order.orderItems.filter(
-        item => item.vendor && item.vendor.toString() === vendorId.toString()
-      );
-      // Recalculate amount for vendor's visibility (Optional, depending on UI)
-      order.vendorAmount = order.orderItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
+      order.orderItems = order.orderItems
+        .filter((item) => item.vendor && item.vendor.toString() === vendorId.toString())
+        .map((item) => ({
+          ...item,
+          lineTotal: item.lineTotal != null ? item.lineTotal : item.price * item.qty
+        }));
+      order.vendorAmount = order.orderItems.reduce((acc, item) => acc + (item.lineTotal || 0), 0);
       return order;
     });
 
@@ -377,9 +358,18 @@ const getAdminOrders = async (req, res) => {
       .populate('user', 'name email')
       .populate('orderItems.vendor', 'storeName fullName')
       .populate('orderItems.admin', 'name')
-      .sort('-createdAt');
+      .sort('-createdAt')
+      .lean();
 
-    res.status(200).json({ success: true, data: orders });
+    const withTotals = orders.map((order) => ({
+      ...order,
+      orderItems: (order.orderItems || []).map((item) => ({
+        ...item,
+        lineTotal: item.lineTotal != null ? item.lineTotal : item.price * item.qty
+      }))
+    }));
+
+    res.status(200).json({ success: true, data: withTotals });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -551,6 +541,7 @@ const adminUpdateReturn = async (req, res) => {
 };
 
 module.exports = {
+  quoteOrder,
   createOrder,
   createRazorpayOrder,
   verifyRazorpayOrder,

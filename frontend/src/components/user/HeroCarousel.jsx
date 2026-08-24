@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useShop } from '../../context/ShopContext';
 
 const HeroCarousel = () => {
   const { banners: allBanners } = useShop();
   // Filter only 'Main Slider' type banners
-  const banners = allBanners ? allBanners.filter(b => b.type === 'Main Slider') : [];
+  const banners = useMemo(() => (
+    (allBanners || [])
+      .filter((b) => b.type === 'Main Slider')
+      .slice()
+      .sort((a, b) => (a.slot ?? a.sequence ?? 999) - (b.slot ?? b.sequence ?? 999))
+  ), [allBanners]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(1);

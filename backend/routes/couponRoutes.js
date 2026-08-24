@@ -8,8 +8,9 @@ const {
     updateCoupon,
     deleteCoupon
 } = require('../controllers/couponController');
+const { cachePublic } = require('../utils/cache');
 
-router.get('/public', getPublicCoupons);
+router.get('/public', cachePublic('coupons', 60), getPublicCoupons);
 router.post('/validate', validateCoupon);
 
 router.route('/')

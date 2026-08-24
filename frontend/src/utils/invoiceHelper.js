@@ -9,6 +9,12 @@ export const generateInvoice = async (order) => {
   element.style.width = '700px';
 
   const date = new Date(order.createdAt).toLocaleDateString();
+  const subTotal = order.itemsPrice ?? order.subTotal ?? 0;
+  const taxAmount = order.taxPrice ?? order.taxAmount ?? 0;
+  const taxRate = order.taxRate ?? '';
+  const shippingAmount = order.shippingPrice ?? order.actualShippingAmount ?? order.shippingAmount ?? 0;
+  const grandTotal = order.totalPrice ?? order.totalAmount ?? 0;
+  const couponLabel = order.couponCode || order.couponApplied || '';
 
   element.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; border-bottom: 2px solid #5C2E3E; padding-bottom: 20px;">
@@ -66,7 +72,7 @@ export const generateInvoice = async (order) => {
             </td>
             <td style="padding: 12px; text-align: center;">₹${item.price}</td>
             <td style="padding: 12px; text-align: center;">${item.quantity}</td>
-            <td style="padding: 12px; text-align: right; font-weight: bold;">₹${item.price * item.quantity}</td>
+            <td style="padding: 12px; text-align: right; font-weight: bold;">₹${item.lineTotal ?? item.price}</td>
           </tr>
         `).join('')}
       </tbody>
@@ -76,25 +82,25 @@ export const generateInvoice = async (order) => {
       <div style="width: 250px;">
         <div style="display: flex; justify-content: space-between; padding: 5px 0; font-size: 11px;">
           <span style="color: #666;">Subtotal (Incl. GST & Shipping):</span>
-          <span style="font-weight: bold;">₹${order.subTotal || (order.totalAmount - (order.shippingAmount || 0))}</span>
+          <span style="font-weight: bold;">₹${subTotal}</span>
         </div>
         <div style="display: flex; justify-content: space-between; padding: 5px 0; font-size: 11px;">
-          <span style="color: #666;">Tax (GST ${order.taxRate || 18}% Included):</span>
-          <span style="font-weight: bold;">₹${order.taxAmount || Math.round((order.subTotal || order.totalAmount) * ((order.taxRate || 18) / 100))}</span>
+          <span style="color: #666;">Tax (GST ${taxRate}% Included):</span>
+          <span style="font-weight: bold;">₹${taxAmount}</span>
         </div>
         <div style="display: flex; justify-content: space-between; padding: 5px 0; font-size: 11px;">
           <span style="color: #666;">Sacred Shipping (Included):</span>
-          <span style="font-weight: bold;">₹${order.actualShippingAmount !== undefined ? order.actualShippingAmount : (order.shippingAmount || 0)}</span>
+          <span style="font-weight: bold;">₹${shippingAmount}</span>
         </div>
-        ${order.couponApplied ? `
+        ${couponLabel ? `
           <div style="display: flex; justify-content: space-between; padding: 5px 0; font-size: 11px; color: #A35266;">
-            <span>Ritual Key Used (${order.couponApplied}):</span>
+            <span>Ritual Key Used (${couponLabel}):</span>
             <span style="font-weight: bold;">Applied</span>
           </div>
         ` : ''}
         <div style="display: flex; justify-content: space-between; padding: 10px 0; border-top: 2px solid #5C2E3E; margin-top: 10px; font-size: 16px; font-weight: 900; color: #5C2E3E;">
           <span>Grand Total:</span>
-          <span>₹${order.totalAmount}</span>
+          <span>₹${grandTotal}</span>
         </div>
       </div>
     </div>

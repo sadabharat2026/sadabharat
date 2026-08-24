@@ -8,6 +8,8 @@ const settingsSchema = new mongoose.Schema({
   shippingPartner: { type: String, default: 'Standard Courier' },
   trackingUrl: { type: String, default: 'https://shiprocket.co/tracking/' },
   supportContact: { type: String, default: '+91 74071 75567' },
+  isCodEnabled: { type: Boolean, default: true },
+  codCharge: { type: Number, default: 0 },
   
   // Security / Admin Preferences
   pushNotifications: { type: Boolean, default: true },

@@ -1,5 +1,5 @@
 const express = require('express');
-const { signup, login, sendRegisterOtp, register, sendOtp, verifyOtp, getMe, updateProfile, addAddress, updateAddress, deleteAddress, getUsers, getBlockedUsers, blockUser, unblockUser } = require('../controllers/userController');
+const { signup, login, sendRegisterOtp, register, sendOtp, verifyOtp, getMe, updateProfile, addAddress, updateAddress, deleteAddress, getUsers, getBlockedUsers, blockUser, unblockUser, updatePassword } = require('../controllers/userController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { otpMobileLimiter } = require('../middlewares/rateLimiter');
 
@@ -24,6 +24,8 @@ router.post('/verify-otp', verifyOtp);
 router.route('/profile')
   .get(protect, getMe)
   .put(protect, updateProfile);
+
+router.patch('/update-password', protect, updatePassword);
 
 router.route('/addresses')
   .post(protect, addAddress);

@@ -1,11 +1,12 @@
 const Offer = require('../models/offerModel');
+const { invalidateCatalog } = require('../utils/cache');
 
 // @desc    Get all offers
 // @route   GET /api/offers
 // @access  Public
 const getOffers = async (req, res) => {
   try {
-    const offers = await Offer.find().sort('-createdAt');
+    const offers = await Offer.find().sort('-createdAt').lean();
     res.status(200).json({ success: true, data: offers });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -28,6 +29,7 @@ const createOffer = async (req, res) => {
       isActive
     });
 
+    invalidateCatalog('offers').catch(() => {});
     res.status(201).json({ success: true, data: offer });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -49,6 +51,7 @@ const updateOffer = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Offer not found' });
     }
 
+    invalidateCatalog('offers').catch(() => {});
     res.status(200).json({ success: true, data: offer });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -66,6 +69,7 @@ const deleteOffer = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Offer not found' });
     }
 
+    invalidateCatalog('offers').catch(() => {});
     res.status(200).json({ success: true, message: 'Offer deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

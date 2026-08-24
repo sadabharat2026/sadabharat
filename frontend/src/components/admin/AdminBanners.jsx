@@ -22,7 +22,7 @@ const AdminBanners = () => {
     price: '',
     btnText: 'SHOP NOW',
     isVideo: false,
-    sequence: 1,
+    slot: 1,
     seoTitle: '',
     seoDescription: '',
     seoKeywords: ''
@@ -85,7 +85,7 @@ const AdminBanners = () => {
       price: banner.price || '',
       btnText: banner.btnText || 'SHOP NOW',
       isVideo: banner.isVideo || false,
-      sequence: banner.sequence !== undefined ? banner.sequence : 1,
+      slot: banner.slot ?? banner.sequence ?? 1,
       seoTitle: banner.seoTitle || '',
       seoDescription: banner.seoDescription || '',
       seoKeywords: banner.seoKeywords || ''
@@ -100,13 +100,13 @@ const AdminBanners = () => {
     setLoading(true);
     try {
       if (editingBanner) {
-        await realApi.put(`/banners/${editingBanner._id}`, form);
+        await realApi.put(`/banners/${editingBanner._id}`, { ...form, sequence: form.slot });
       } else {
-        await realApi.post('/banners', form);
+        await realApi.post('/banners', { ...form, sequence: form.slot });
       }
       setIsAdding(false);
       setEditingBanner(null);
-      setForm({ title: '', image: '', link: '', type: 'Main Slider', description: '', subtitle: '', price: '', btnText: 'SHOP NOW', isVideo: false, sequence: 1, seoTitle: '', seoDescription: '', seoKeywords: '' });
+      setForm({ title: '', image: '', link: '', type: 'Main Slider', description: '', subtitle: '', price: '', btnText: 'SHOP NOW', isVideo: false, slot: 1, seoTitle: '', seoDescription: '', seoKeywords: '' });
       fetchData();
     } catch (err) {
       console.error('API Error:', err);
@@ -119,7 +119,7 @@ const AdminBanners = () => {
   const handleCancel = () => {
     setIsAdding(false);
     setEditingBanner(null);
-    setForm({ title: '', image: '', link: '', type: 'Main Slider', description: '', subtitle: '', price: '', btnText: 'SHOP NOW', isVideo: false, sequence: 1, seoTitle: '', seoDescription: '', seoKeywords: '' });
+    setForm({ title: '', image: '', link: '', type: 'Main Slider', description: '', subtitle: '', price: '', btnText: 'SHOP NOW', isVideo: false, slot: 1, seoTitle: '', seoDescription: '', seoKeywords: '' });
   };
 
   return (
@@ -195,19 +195,20 @@ const AdminBanners = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[8px] font-black uppercase text-brand-dark flex items-center gap-1">
-                  <span>Banner Sequence Order</span>
-                  <span className="text-[7px] text-gray-400 font-normal">(1 = 1st, 2 = 2nd...)</span>
+                <label className="text-[8px] font-black uppercase text-brand-dark">
+                  Slot (display order)
                 </label>
-                <input 
-                  type="number" 
-                  min="1" 
-                  max="999" 
-                  value={form.sequence} 
-                  onChange={e => setForm({ ...form, sequence: parseInt(e.target.value) || 1 })} 
-                  className="w-full bg-gray-50 border border-brand-dark/20 text-[11px] font-bold p-2 outline-none rounded-lg focus:border-brand-dark" 
-                  placeholder="e.g. 1" 
+                <input
+                  type="number"
+                  min="1"
+                  max="999"
+                  required
+                  value={form.slot}
+                  onChange={e => setForm({ ...form, slot: parseInt(e.target.value, 10) || 1 })}
+                  className="w-full bg-gray-50 border border-brand-dark/20 text-[11px] font-bold p-2 outline-none rounded-lg focus:border-brand-dark"
+                  placeholder="1 = first, 2 = second..."
                 />
+                <p className="text-[9px] text-gray-400">Lower slot number shows first on the website.</p>
               </div>
 
               <div className="space-y-1 md:col-span-2">
@@ -288,7 +289,11 @@ const AdminBanners = () => {
       </AnimatePresence>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {banners.filter(b => activeTab === 'Store Banners' ? b.type !== 'Vendor Dashboard' : b.type === 'Vendor Dashboard').map((banner) => {
+        {banners
+          .filter(b => activeTab === 'Store Banners' ? b.type !== 'Vendor Dashboard' : b.type === 'Vendor Dashboard')
+          .slice()
+          .sort((a, b) => (a.slot ?? a.sequence ?? 999) - (b.slot ?? b.sequence ?? 999))
+          .map((banner) => {
           return (
             <div key={banner._id} className="bg-white rounded-2xl border border-gray-100 shadow-sm group relative overflow-hidden flex flex-col">
               <div className="p-3 pb-0">
@@ -300,7 +305,7 @@ const AdminBanners = () => {
                   )}
                   <div className="absolute top-2 left-2 flex gap-1 items-center">
                     <span className="bg-[#D4AF37] text-[#054425] text-[9px] font-black px-2 py-1 rounded uppercase tracking-widest shadow-md">
-                      #{banner.sequence !== undefined ? banner.sequence : 1}
+                      Slot #{banner.slot ?? banner.sequence ?? 1}
                     </span>
                     <span className="bg-brand-dark/90 text-white text-[9px] font-bold px-2 py-1 rounded uppercase tracking-widest shadow-sm backdrop-blur-md">{banner.type}</span>
                     {(banner.isVideo || (typeof banner.image === 'string' && banner.image.endsWith('.mp4'))) && (

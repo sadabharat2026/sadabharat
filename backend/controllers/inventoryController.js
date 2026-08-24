@@ -1,5 +1,6 @@
 const Inventory = require('../models/inventoryModel');
 const Product = require('../models/productModel');
+const { invalidateCatalog } = require('../utils/cache');
 
 // @desc    Update stock for a specific product
 // @route   PUT /api/inventory/:productId
@@ -34,6 +35,7 @@ const updateStock = async (req, res) => {
       await inventory.save();
     }
 
+    invalidateCatalog('products').catch(() => {});
     res.status(200).json({ success: true, data: inventory });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

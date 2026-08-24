@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Upload, X, CheckCircle, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../../utils/api';
-import { getProductImages, isUsableImageUrl } from '../../utils/productImages';
+import { getStoredProductImages, isUsableImageUrl } from '../../utils/productImages';
 import { uploadImageFiles } from '../../utils/uploadImages';
 
 const VendorAddProduct = () => {
@@ -10,7 +10,7 @@ const VendorAddProduct = () => {
   const location = useLocation();
   const editProduct = location.state?.product || null;
 
-  const [images, setImages] = useState(editProduct ? getProductImages(editProduct) : []);
+  const [images, setImages] = useState(editProduct ? getStoredProductImages(editProduct) : []);
   const [name, setName] = useState(editProduct?.name || '');
   const [description, setDescription] = useState(editProduct?.description || '');
   const [ingredients, setIngredients] = useState(editProduct?.ingredients || '');

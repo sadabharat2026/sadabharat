@@ -7,9 +7,10 @@ const {
   deleteBanner 
 } = require('../controllers/bannerController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
+const { cachePublic } = require('../utils/cache');
 
 router.route('/')
-  .get(getBanners)
+  .get(cachePublic('banners', 120), getBanners)
   .post(protect, authorize('admin'), createBanner);
 
 router.route('/:id')

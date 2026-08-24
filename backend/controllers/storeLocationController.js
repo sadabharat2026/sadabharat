@@ -1,4 +1,5 @@
 const StoreLocation = require('../models/storeLocationModel');
+const { invalidateCatalog } = require('../utils/cache');
 
 // @desc    Get all store locations
 // @route   GET /api/locations
@@ -35,6 +36,7 @@ const createLocation = async (req, res, next) => {
       isActive
     });
 
+    invalidateCatalog('locations').catch(() => {});
     res.status(201).json({
       success: true,
       data: location
@@ -62,6 +64,7 @@ const updateLocation = async (req, res, next) => {
       { new: true, runValidators: true }
     );
 
+    invalidateCatalog('locations').catch(() => {});
     res.status(200).json({
       success: true,
       data: location
@@ -85,6 +88,7 @@ const deleteLocation = async (req, res, next) => {
 
     await location.deleteOne();
 
+    invalidateCatalog('locations').catch(() => {});
     res.status(200).json({
       success: true,
       data: {}

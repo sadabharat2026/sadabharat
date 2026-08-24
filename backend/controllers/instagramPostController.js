@@ -1,11 +1,12 @@
 const InstagramPost = require('../models/instagramPostModel');
+const { invalidateCatalog } = require('../utils/cache');
 
 // @desc    Get all Instagram posts
 // @route   GET /api/instagram
 // @access  Public
 const getInstagramPosts = async (req, res, next) => {
   try {
-    const posts = await InstagramPost.find({}).sort('-createdAt');
+    const posts = await InstagramPost.find({}).sort('-createdAt').lean();
     res.status(200).json({
       success: true,
       data: { posts }
@@ -29,6 +30,7 @@ const createInstagramPost = async (req, res, next) => {
 
     const post = await InstagramPost.create({ image, link });
 
+    invalidateCatalog('instagram').catch(() => {});
     res.status(201).json({
       success: true,
       data: post
@@ -52,6 +54,7 @@ const deleteInstagramPost = async (req, res, next) => {
 
     await post.deleteOne();
 
+    invalidateCatalog('instagram').catch(() => {});
     res.status(200).json({
       success: true,
       data: {}

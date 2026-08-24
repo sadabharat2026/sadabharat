@@ -101,9 +101,14 @@ const VendorReviews = () => {
                   </td>
                   {/* Comment */}
                   <td className="px-4 py-2 max-w-[220px]">
-                    <p className="text-[11px] text-gray-500 italic line-clamp-1">
+                    <p className="text-[11px] text-gray-500 italic line-clamp-2">
                       {rev.comment ? `"${rev.comment}"` : <span className="text-gray-300 not-italic">No comment</span>}
                     </p>
+                    {rev.adminReply && (
+                      <p className="text-[10px] text-[#054425] mt-1 line-clamp-2">
+                        Admin: {rev.adminReply}
+                      </p>
+                    )}
                   </td>
                   {/* Date */}
                   <td className="px-4 py-2 text-[11px] text-gray-400 whitespace-nowrap">

@@ -36,7 +36,6 @@ const Checkout = () => {
   });
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
-  const [discountAmount, setDiscountAmount] = useState(0);
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
   const [availableCoupons, setAvailableCoupons] = useState([]);
@@ -175,13 +174,6 @@ const Checkout = () => {
           const res = await api.post('/coupons/validate', { code: passedCouponCode });
           const coupon = res.data.data.coupon;
           setAppliedCoupon(coupon);
-          // Calculate initial discount
-          const st = directProduct ? (directProduct.originalPrice || directProduct.price) * (directProduct.quantity || 1) : cartTotal;
-          if (coupon.discountType === 'percentage') {
-            setDiscountAmount(Math.round(st * (coupon.discountValue / 100)));
-          } else {
-            setDiscountAmount(coupon.discountValue);
-          }
         } catch (err) {
           console.error("Initial coupon validation failed", err);
         }
@@ -192,19 +184,47 @@ const Checkout = () => {
 
   const displayItems = directProduct ? [directProduct] : cart;
 
-  // Dynamic Logistics Math
-  const subtotal = directProduct
-    ? (directProduct.originalPrice || directProduct.price) * (directProduct.quantity || 1)
-    : cartTotal;
+  const [quote, setQuote] = useState(null);
+  const quoteKey = JSON.stringify({
+    items: displayItems.map((item) => ({ id: item._id, q: item.quantity || 1, s: item.selectedSize || '' })),
+    coupon: appliedCoupon?.code || '',
+    pay: selectedPayment
+  });
 
-  const currentTaxRate = settings?.taxRate || 18;
-  const shippingValue = 0; // Forced to zero as per user requirement to show internal price in invoice but not charge here.
-  const actualShipping = (settings?.deliveryCharge || 50);
+  useEffect(() => {
+    if (!displayItems.length) {
+      setQuote(null);
+      return undefined;
+    }
+    let live = true;
+    api.post('/orders/quote', {
+      items: displayItems.map((item) => ({
+        product: item._id,
+        quantity: item.quantity || 1,
+        size: item.selectedSize
+      })),
+      couponCode: appliedCoupon?.code,
+      paymentMethod: selectedPayment
+    }).then((res) => {
+      if (live) {
+        setQuote(res.data.data);
+        setCouponError('');
+      }
+    }).catch((err) => {
+      if (!live) return;
+      setCouponError(err.response?.data?.message || err.message);
+    });
+    return () => { live = false; };
+  }, [quoteKey]);
 
-  // Display Tax calculated as percentage of subtotal, but it is INCLUSIVE (already in main price)
-  const taxAmount = Math.round(subtotal * (currentTaxRate / 100));
-  const codFee = (selectedPayment === 'cod' && settings?.isCodEnabled) ? (settings?.codCharge || 0) : 0;
-  const total = Math.max(0, subtotal - discountAmount + shippingValue + codFee);
+  const subtotal = quote?.subtotal ?? 0;
+  const discountAmount = quote?.discountAmount ?? 0;
+  const shippingValue = quote?.shippingAmount ?? 0;
+  const actualShipping = quote?.listedShipping ?? 0;
+  const currentTaxRate = quote?.taxRate ?? 0;
+  const taxAmount = quote?.taxAmount ?? 0;
+  const codFee = quote?.codFee ?? 0;
+  const total = quote?.total ?? 0;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -250,7 +270,11 @@ const Checkout = () => {
     setIsPaymentLoading(true);
     try {
       // 1. Create Razorpay order on backend
-      const res = await api.post('/orders/razorpay/create', { amount: total });
+      const res = await api.post('/orders/razorpay/create', {
+        items: displayItems.map((i) => ({ product: i._id, quantity: i.quantity || 1, size: i.selectedSize })),
+        couponCode: appliedCoupon?.code,
+        paymentMethod: 'paynow'
+      });
       const { id: razorpay_order_id, amount, currency } = res.data.data.order;
 
       const options = {
@@ -301,20 +325,12 @@ const Checkout = () => {
 
   const applyCouponData = (coupon) => {
     setAppliedCoupon(coupon);
-    let discount = 0;
-    if (coupon.discountType === 'percentage') {
-      discount = Math.round(subtotal * (coupon.discountValue / 100));
-    } else {
-      discount = coupon.discountValue;
-    }
-    setDiscountAmount(Math.min(discount, subtotal));
     setCouponError('');
     setCouponCode('');
   };
 
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
-    setDiscountAmount(0);
     setCouponError('');
   };
 
@@ -527,7 +543,7 @@ const Checkout = () => {
                                 <input type="radio" name="payment" checked={selectedPayment === 'paynow'} onChange={() => setSelectedPayment('paynow')} className="accent-[#054425] w-4 h-4" />
                                 <span className="text-sm">Online Payment</span>
                             </label>
-                            {settings?.isCodEnabled !== false && (
+                            {quote?.isCodEnabled !== false && (
                                 <label className={`flex-1 flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${selectedPayment === 'cod' ? 'border-[#054425] bg-[#054425]/5' : 'border-gray-200 hover:bg-gray-50'}`}>
                                     <input type="radio" name="payment" checked={selectedPayment === 'cod'} onChange={() => setSelectedPayment('cod')} className="accent-[#054425] w-4 h-4" />
                                     <span className="text-sm">Cash on Delivery</span>
@@ -565,7 +581,7 @@ const Checkout = () => {
                                   <p className="text-xs text-gray-600">₹{item.price} <span className="text-[10px] text-gray-400">x {item.quantity || 1}</span></p>
                                 </div>
                                 <div className="text-right">
-                                  <span className="text-sm font-medium text-[#054425]">₹{item.price * (item.quantity || 1)}</span>
+                                  <span className="text-sm font-medium text-[#054425]">₹{(quote?.items?.find((row) => String(row.product) === String(item._id))?.lineTotal) ?? item.price}</span>
                                 </div>
                               </div>
                             ))}

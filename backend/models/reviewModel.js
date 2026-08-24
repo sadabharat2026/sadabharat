@@ -25,6 +25,17 @@ const reviewSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  adminReply: {
+    type: String,
+    default: ''
+  },
+  adminReplyAt: {
+    type: Date
+  },
+  adminReplyBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   isApproved: {
     type: Boolean,
     default: true

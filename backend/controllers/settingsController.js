@@ -1,4 +1,5 @@
 const Settings = require('../models/settingsModel');
+const { invalidateCatalog } = require('../utils/cache');
 
 // @desc    Get settings
 // @route   GET /api/settings
@@ -26,6 +27,7 @@ const updateSettings = async (req, res) => {
     } else {
       settings = await Settings.findOneAndUpdate({}, req.body, { new: true });
     }
+    invalidateCatalog('settings').catch(() => {});
     res.status(200).json({ success: true, data: { settings } });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });

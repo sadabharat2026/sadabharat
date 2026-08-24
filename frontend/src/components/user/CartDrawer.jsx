@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiMinus, FiPlus, FiTrash2, FiShoppingBag, FiArrowRight, FiArrowLeft } from 'react-icons/fi';
 import { useShop } from '../../context/ShopContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { toWebpUrl } from '../../utils/productImages';
 
 const CartDrawer = () => {
-  const { isCartDrawerOpen, setIsCartDrawerOpen, cart, removeFromCart, updateQuantity, cartTotal, cartCount } = useShop();
+  const { isCartDrawerOpen, setIsCartDrawerOpen, cart, cartQuote, removeFromCart, updateQuantity, cartTotal, cartCount } = useShop();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -68,7 +69,7 @@ const CartDrawer = () => {
                     className="flex gap-4 items-center bg-white p-3 rounded-2xl border border-gray-50 shadow-sm"
                   >
                     <div className="w-20 h-24 rounded-xl overflow-hidden bg-[#F4F8F5] shrink-0">
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                      <img src={toWebpUrl(item.image)} alt={item.name} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-[10px] md:text-xs font-black text-[#054425] uppercase truncate tracking-tight mb-1">
@@ -93,7 +94,7 @@ const CartDrawer = () => {
                             <FiPlus size={10} />
                           </button>
                         </div>
-                        <span className="text-[11px] font-black text-[#D4AF37]">₹{item.price * item.quantity}</span>
+                        <span className="text-[11px] font-black text-[#D4AF37]">₹{cartQuote?.items?.find((row) => String(row.product) === String(item._id))?.lineTotal ?? item.price}</span>
                       </div>
                     </div>
                     <button

@@ -89,7 +89,7 @@ const AdminOrders = () => {
       productName: item.name,
       qty: item.qty,
       price: item.price,
-      totalAmount: `₹${(item.price * item.qty).toLocaleString()}`,
+      totalAmount: `₹${Number(item.lineTotal ?? item.price).toLocaleString()}`,
       date: new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       status: item.status,
       trackingNumber: item.trackingNumber || '',
@@ -110,7 +110,7 @@ const AdminOrders = () => {
   });
 
   if (selectedOrder) {
-    const orderTotal = selectedOrder.totalPrice || selectedOrder.orderItems.reduce((acc, i) => acc + (i.price * i.qty), 0);
+    const orderTotal = selectedOrder.totalPrice || 0;
     const shipping = selectedOrder.shippingPrice || 0;
     
     return (
@@ -186,7 +186,7 @@ const AdminOrders = () => {
                         </div>
                       </div>
                       <div className="flex flex-col items-start sm:items-end min-w-[80px]">
-                        <span className="text-sm font-bold text-gray-900">₹{item.price * item.qty}</span>
+                        <span className="text-sm font-bold text-gray-900">₹{item.lineTotal ?? item.price}</span>
                         <span className={`mt-2 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                           item.status === 'Delivered' ? 'bg-green-100 text-green-700' :
                           item.status === 'Shipped' ? 'bg-blue-100 text-blue-700' :

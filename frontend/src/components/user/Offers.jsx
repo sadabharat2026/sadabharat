@@ -346,9 +346,11 @@ const Offers = () => {
           <motion.div layout className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             <AnimatePresence mode="popLayout">
               {filteredProducts.slice(0, visibleCount).map((product) => {
-                const discountPercent = product.discount || '20';
+                const discountPercent = product.discountValue || product.discount;
                 const categoryStr = product.category ? `ON AYURVEDIC ${product.category.toUpperCase()}` : 'ON AYURVEDIC CARE';
-                const offerBannerText = `UP TO ${discountPercent}% OFF ${categoryStr}`;
+                const offerBannerText = discountPercent
+                  ? `UP TO ${discountPercent}% OFF ${categoryStr}`
+                  : categoryStr;
 
                 return (
                   <motion.div key={product._id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.2 }}>

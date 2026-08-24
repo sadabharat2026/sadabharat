@@ -16,8 +16,8 @@ const expandGallery = (url) => {
   if (url.includes('res.cloudinary.com') && url.includes('/upload/')) {
     return [
       url,
-      insertCloudinaryTransform(url, 'c_fill,g_center,z_1.22,w_900,h_900,q_auto,f_auto'),
-      insertCloudinaryTransform(url, 'c_fill,g_auto,z_1.42,w_900,h_900,q_auto,f_auto'),
+      insertCloudinaryTransform(url, 'c_fill,g_center,z_1.22,w_900,h_900,q_auto:good,f_webp'),
+      insertCloudinaryTransform(url, 'c_fill,g_auto,z_1.42,w_900,h_900,q_auto:good,f_webp'),
     ];
   }
 

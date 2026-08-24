@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useShop } from '../../context/ShopContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiShoppingBag, FiTrash2, FiMinus, FiPlus, FiArrowRight, FiInfo, FiTag, FiCheckCircle } from 'react-icons/fi';
@@ -15,17 +15,37 @@ const Bag = () => {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
+  const [bagQuote, setBagQuote] = useState(null);
 
-  // Derive final values conditionally based on active coupon context
-  let discountAmount = 0;
-  if (appliedCoupon) {
-    if (appliedCoupon.discountType === 'percentage') {
-      discountAmount = (cartTotal * appliedCoupon.discountValue) / 100;
-    } else {
-      discountAmount = appliedCoupon.discountValue;
+  useEffect(() => {
+    if (!cart.length) {
+      setBagQuote(null);
+      return undefined;
     }
-  }
-  const finalTotal = Math.max(0, cartTotal - discountAmount);
+    let live = true;
+    api.post('/orders/quote', {
+      items: cart.map((item) => ({
+        product: item._id,
+        quantity: item.quantity || 1,
+        size: item.selectedSize
+      })),
+      couponCode: appliedCoupon?.code
+    }).then((res) => {
+      if (live) {
+        setBagQuote(res.data.data);
+        setCouponError('');
+      }
+    }).catch((err) => {
+      if (live) setCouponError(err.response?.data?.message || err.message);
+    });
+    return () => { live = false; };
+  }, [cart, appliedCoupon?.code]);
+
+  const discountAmount = bagQuote?.discountAmount ?? 0;
+  const bagSubtotal = bagQuote?.subtotal ?? cartTotal;
+  const bagShipping = bagQuote?.shippingAmount ?? 0;
+  const bagTax = bagQuote?.taxAmount ?? 0;
+  const finalTotal = bagQuote?.total ?? cartTotal;
 
   const validateCoupon = async () => {
     if (!couponCode) return;
@@ -124,7 +144,7 @@ const Bag = () => {
                           <FiPlus size={12} />
                         </button>
                       </div>
-                      <span className="text-sm font-black text-brand-dark">₹{item.price * item.quantity}</span>
+                      <span className="text-sm font-black text-brand-dark">₹{bagQuote?.items?.find((row) => String(row.product) === String(item._id))?.lineTotal ?? item.price}</span>
                     </div>
                   </div>
                 </motion.div>
@@ -182,7 +202,7 @@ const Bag = () => {
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-[#5C2E3E]/60">
                   <span>Bag Subtotal</span>
-                  <span>₹{cartTotal}</span>
+                  <span>₹{bagSubtotal}</span>
                 </div>
                 {appliedCoupon && (
                   <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-green-600">
@@ -192,11 +212,11 @@ const Bag = () => {
                 )}
                 <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-[#5C2E3E]/60">
                   <span>Shipping</span>
-                  <span className="text-green-600 font-bold">FREE</span>
+                  <span className={bagShipping === 0 ? 'text-green-600 font-bold' : ''}>{bagShipping === 0 ? 'FREE' : `₹${bagShipping}`}</span>
                 </div>
                 <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-[#5C2E3E]/60">
                   <span>Tax (Included)</span>
-                  <span>₹0</span>
+                  <span>₹{bagTax}</span>
                 </div>
                 <div className="h-[1px] bg-gray-50 my-2" />
                 <div className="flex justify-between text-base font-serif font-black text-brand-dark">
@@ -213,7 +233,7 @@ const Bag = () => {
               </div>
 
               <button
-                onClick={() => navigate('/checkout', { state: { appliedCoupon, finalTotal, discountAmount } })}
+                onClick={() => navigate('/checkout', { state: { couponApplied: appliedCoupon?.code } })}
                 className="w-full bg-brand-dark text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl hover:bg-brand-pink shadow-brand-pink/20 transition-all group"
               >
                 Go to Checkout <FiArrowRight className="group-hover:translate-x-1 transition-transform" />

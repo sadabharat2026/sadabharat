@@ -22,7 +22,6 @@ import {
   FiDollarSign,
   FiUser,
   FiMessageSquare,
-  FiHelpCircle,
   FiTruck,
   FiMapPin,
   FiZap,
@@ -44,7 +43,7 @@ const AdminLayout = () => {
     }
   }, [location]);
 
-  const [openMenus, setOpenMenus] = useState({ Vendors: true });
+  const [openMenus, setOpenMenus] = useState({});
 
   const toggleMenu = (title) => {
     setOpenMenus(prev => ({ ...prev, [title]: !prev[title] }));
@@ -123,8 +122,7 @@ const AdminLayout = () => {
       subItems: [
         { title: 'Existing Vendors', path: '/admin/vendors' },
         { title: 'New Joining Requests', path: '/admin/vendors/pending' },
-        { title: 'Blocked Vendors', path: '/admin/vendors/blocked' },
-        { title: 'Vendor Chats', path: '/admin/vendor-chats' }
+        { title: 'Blocked Vendors', path: '/admin/vendors/blocked' }
       ]
     },
     { 
@@ -153,7 +151,6 @@ const AdminLayout = () => {
     { title: 'Blogs', path: '/admin/blogs', icon: <FiLayers /> },
     { title: 'Feedback Ledger', path: '/admin/reviews', icon: <FiMessageSquare /> },
     { title: 'Notifications', path: '/admin/notifications', icon: <FiBell /> },
-    { title: 'Support Chats', path: '/admin/support', icon: <FiMessageSquare /> },
     { title: 'Legal & Policies', path: '/admin/policies', icon: <FiShield /> },
     { title: 'Settings', path: '/admin/settings', icon: <FiSettings /> },
   ];
@@ -391,14 +388,6 @@ const AdminLayout = () => {
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
-
-            {/* Messages */}
-            <div className="relative hidden sm:block">
-              <button className="relative text-gray-500 hover:text-admin-dark transition-colors">
-                <FiMessageSquare size={20} />
-                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 border-2 border-white rounded-full text-[7px] font-bold text-white flex items-center justify-center">2</span>
-              </button>
             </div>
 
             <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>

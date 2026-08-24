@@ -1,4 +1,5 @@
 const Coupon = require('../models/couponModel');
+const { invalidateCatalog } = require('../utils/cache');
 
 const isCouponCurrentlyValid = (coupon) => {
     if (!coupon.isActive) return false;
@@ -102,6 +103,7 @@ const createCoupon = async (req, res) => {
             expiryDate
         });
 
+        invalidateCatalog('coupons').catch(() => {});
         res.status(201).json({
             status: 'success',
             data: {
@@ -128,6 +130,7 @@ const updateCoupon = async (req, res) => {
             return res.status(404).json({ status: 'fail', message: 'Coupon not found' });
         }
 
+        invalidateCatalog('coupons').catch(() => {});
         res.status(200).json({
             status: 'success',
             data: {
@@ -149,6 +152,7 @@ const deleteCoupon = async (req, res) => {
             return res.status(404).json({ status: 'fail', message: 'Coupon not found' });
         }
 
+        invalidateCatalog('coupons').catch(() => {});
         res.status(200).json({ status: 'success', message: 'Coupon deleted successfully' });
     } catch (error) {
         res.status(400).json({ status: 'fail', message: error.message });

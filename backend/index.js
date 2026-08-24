@@ -16,6 +16,7 @@ const blogRoutes = require('./routes/blogRoutes');
 const shippingRoutes = require('./routes/shipping.routes');
 const { errorHandler } = require('./middlewares/errorHandler');
 const { ipRateLimiter } = require('./middlewares/rateLimiter');
+const { connectRedis, getRedisStatus } = require('./config/redis');
 const connectDB = require('./config/db');
 
 // Initialize Express App
@@ -27,8 +28,9 @@ if (process.env.TRUST_PROXY === 'true' || process.env.TRUST_PROXY === '1') {
   app.set('trust proxy', 1);
 }
 
-// Connect to Database
+// Connect to Database and cache
 connectDB();
+connectRedis().catch(() => {});
 
 // Middlewares
 app.use(cors());
@@ -66,6 +68,8 @@ const storeLocationRoutes = require('./routes/storeLocationRoutes');
 app.use('/api/locations', storeLocationRoutes);
 const policyRoutes = require('./routes/policyRoutes');
 app.use('/api/policies', policyRoutes);
+const reviewRoutes = require('./routes/reviewRoutes');
+app.use('/api/reviews', reviewRoutes);
 
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -75,13 +79,27 @@ app.get('/', (req, res) => {
   res.send('API is running...');
 });
 
+app.get('/api/health', (req, res) => {
+  res.json({
+    success: true,
+    uptime: process.uptime(),
+    cache: getRedisStatus()
+  });
+});
+
 // Error Handling Middleware
 app.use(errorHandler);
 
-// Start Server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-// Nodemon trigger comment
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Stop the other process and retry.`);
+    process.exit(1);
+  }
+  console.error('Server error:', err);
+  process.exit(1);
+});
 

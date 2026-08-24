@@ -70,7 +70,7 @@ const VendorOrders = () => {
       productName: item.name,
       qty: item.qty,
       price: item.price,
-      totalAmount: `₹${(item.price * item.qty).toLocaleString()}`,
+      totalAmount: `₹${Number(item.lineTotal ?? item.price).toLocaleString()}`,
       date: new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       status: item.status,
       trackingNumber: item.trackingNumber || '',
@@ -88,9 +88,8 @@ const VendorOrders = () => {
   });
 
   if (selectedOrder) {
-    const orderTotal = selectedOrder.vendorAmount || selectedOrder.orderItems.reduce((acc, i) => acc + (i.price * i.qty), 0);
-    // Shipping might not be fully accurate per vendor, assuming 0 or passing down if available
-    const shipping = 0; 
+    const orderTotal = selectedOrder.vendorAmount ?? 0;
+    const shipping = selectedOrder.shippingPrice ?? 0; 
     
     return (
       <div className="max-w-7xl mx-auto space-y-4 font-sans">
@@ -164,7 +163,7 @@ const VendorOrders = () => {
                         </div>
                       </div>
                       <div className="flex flex-col items-start sm:items-end min-w-[80px]">
-                        <span className="text-sm font-bold text-gray-900">₹{item.price * item.qty}</span>
+                        <span className="text-sm font-bold text-gray-900">₹{item.lineTotal ?? item.price}</span>
                         <span className={`mt-2 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                           item.status === 'Delivered' ? 'bg-green-100 text-green-700' :
                           item.status === 'Shipped' ? 'bg-blue-100 text-blue-700' :
@@ -181,7 +180,7 @@ const VendorOrders = () => {
                 <div className="pt-4 mt-2 border-t border-gray-100">
                   <div className="flex justify-between items-center py-2 text-base font-bold text-gray-900 mt-2">
                     <span>Total Amount for Your Items ({selectedOrder.paymentMethod || 'COD'})</span>
-                    <span className="text-[#054425]">₹{orderTotal + shipping}</span>
+                    <span className="text-[#054425]">₹{orderTotal}</span>
                   </div>
                 </div>
               </div>

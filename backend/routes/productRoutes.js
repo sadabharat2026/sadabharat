@@ -10,9 +10,10 @@ const {
   deleteProduct
 } = require('../controllers/productController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
+const { cachePublic } = require('../utils/cache');
 
 // Public route for approved products
-router.get('/', getProducts);
+router.get('/', cachePublic('products', 45), getProducts);
 
 // Protected routes (Admin or Vendor)
 router.post('/', protect, createProduct);

@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const cloudinary = require('cloudinary').v2;
+const { toWebpUrl } = require('../utils/imageOptimize');
 
 const router = express.Router();
 
@@ -35,24 +36,37 @@ const upload = multer({
   },
 });
 
-// Helper to upload a buffer to Cloudinary with automatic optimization & compression
-const uploadToCloudinary = (fileBuffer, originalname) => {
+const isVideoFile = (name = '', mime = '') =>
+  mime.startsWith('video/') || /\.(mp4|mov|avi|mkv|webm)$/i.test(name);
+
+const isPdfFile = (name = '', mime = '') =>
+  mime === 'application/pdf' || /\.pdf$/i.test(name);
+
+const isSvgFile = (name = '', mime = '') =>
+  mime.includes('svg') || /\.svg$/i.test(name);
+
+const uploadToCloudinary = (file) => {
   return new Promise((resolve, reject) => {
-    const isVideoFile = /\.(mp4|mov|avi|mkv|webm)$/i.test(originalname);
-    
+    const originalname = file.originalname || '';
+    const mimetype = file.mimetype || '';
+    const video = isVideoFile(originalname, mimetype);
+    const pdf = isPdfFile(originalname, mimetype);
+    const svg = isSvgFile(originalname, mimetype);
+
     const uploadOptions = {
-      resource_type: isVideoFile ? 'video' : 'auto',
       folder: 'sadabharat',
-      // Auto compress videos / images to modern high-efficiency web format
-      quality: 'auto:good',
-      fetch_format: 'auto'
+      resource_type: video ? 'video' : pdf ? 'raw' : 'image'
     };
 
-    if (isVideoFile) {
-      // Automatic video compression transformations
+    if (video) {
+      uploadOptions.quality = 'auto:eco';
+      uploadOptions.transformation = [{ quality: 'auto:eco' }, { video_codec: 'auto' }];
+    } else if (!pdf && !svg) {
+      // Store as WebP at visually similar quality, cap huge camera uploads
+      uploadOptions.format = 'webp';
+      uploadOptions.quality = 'auto:good';
       uploadOptions.transformation = [
-        { quality: 'auto:eco' }, // Compress bitrate efficiently for web fast loading
-        { video_codec: 'auto' }
+        { width: 2000, crop: 'limit', fetch_format: 'webp', quality: 'auto:good' }
       ];
     }
 
@@ -60,10 +74,11 @@ const uploadToCloudinary = (fileBuffer, originalname) => {
       uploadOptions,
       (error, result) => {
         if (error) return reject(error);
-        resolve(result.secure_url);
+        const url = result.secure_url || '';
+        resolve(video || pdf || svg ? url : toWebpUrl(url));
       }
     );
-    stream.end(fileBuffer);
+    stream.end(file.buffer);
   });
 };
 
@@ -73,9 +88,7 @@ router.post('/', upload.array('documents', 10), async (req, res) => {
   }
 
   try {
-    const uploadPromises = req.files.map(file =>
-      uploadToCloudinary(file.buffer, file.originalname)
-    );
+    const uploadPromises = req.files.map((file) => uploadToCloudinary(file));
     
     const fileUrls = await Promise.all(uploadPromises);
 

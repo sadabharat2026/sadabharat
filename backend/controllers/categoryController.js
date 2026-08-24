@@ -1,4 +1,5 @@
 const Category = require('../models/categoryModel');
+const { invalidateCatalog } = require('../utils/cache');
 
 // @desc    Create a new category
 // @route   POST /api/categories
@@ -20,6 +21,7 @@ const createCategory = async (req, res, next) => {
 
     const category = await Category.create({ title, url });
 
+    invalidateCatalog('categories').catch(() => {});
     res.status(201).json({
       success: true,
       data: category
@@ -34,7 +36,7 @@ const createCategory = async (req, res, next) => {
 // @access  Public
 const getCategories = async (req, res, next) => {
   try {
-    const categories = await Category.find({});
+    const categories = await Category.find({}).lean();
     res.status(200).json({
       success: true,
       count: categories.length,
@@ -83,6 +85,7 @@ const updateCategory = async (req, res, next) => {
       runValidators: true
     });
 
+    invalidateCatalog('categories').catch(() => {});
     res.status(200).json({
       success: true,
       data: category
@@ -106,6 +109,7 @@ const deleteCategory = async (req, res, next) => {
 
     await category.deleteOne();
 
+    invalidateCatalog('categories').catch(() => {});
     res.status(200).json({
       success: true,
       data: {}

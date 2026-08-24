@@ -7,9 +7,10 @@ const {
   deleteOffer
 } = require('../controllers/offerController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
+const { cachePublic } = require('../utils/cache');
 
 router.route('/')
-  .get(getOffers)
+  .get(cachePublic('offers', 60), getOffers)
   .post(protect, authorize('admin'), createOffer);
 
 router.route('/:id')

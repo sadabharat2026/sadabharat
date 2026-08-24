@@ -8,10 +8,11 @@ const {
 } = require('../controllers/categoryController');
 
 const router = express.Router();
+const { cachePublic } = require('../utils/cache');
 
 router.route('/')
-  .post(createCategory) // Creates category
-  .get(getCategories);  // Lists all categories
+  .post(createCategory)
+  .get(cachePublic('categories', 300), getCategories);
 
 router.route('/:id')
   .get(getCategoryById) // Get single category

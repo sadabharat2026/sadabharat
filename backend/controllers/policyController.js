@@ -1,4 +1,5 @@
 const Policy = require('../models/policyModel');
+const { invalidateCatalog } = require('../utils/cache');
 
 // @desc    Get policy by type
 // @route   GET /api/policies/:type
@@ -61,6 +62,7 @@ const updatePolicy = async (req, res) => {
       policy = await Policy.create({ type, content });
     }
 
+    invalidateCatalog('policies').catch(() => {});
     res.status(200).json({
       success: true,
       message: 'Policy updated successfully.',

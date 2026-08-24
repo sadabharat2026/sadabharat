@@ -21,7 +21,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { useShop } from '../../context/ShopContext';
 
 import api from '../../utils/api';
-import { getProductImages, isUsableImageUrl } from '../../utils/productImages';
+import { getStoredProductImages, isUsableImageUrl } from '../../utils/productImages';
 import { uploadImageFiles } from '../../utils/uploadImages';
 
 
@@ -204,7 +204,7 @@ const AdminProducts = () => {
       oldPrice: product.oldPrice || '',
       stock: product.stock || '',
       sku: product.sku || '',
-      images: getProductImages(product),
+      images: getStoredProductImages(product),
       prescriptionRequired: product.prescriptionRequired || false,
       noRefund: product.noRefund || false,
       codAvailable: product.codAvailable || false,

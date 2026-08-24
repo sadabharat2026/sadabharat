@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useShop } from '../../context/ShopContext';
 import { useNavigate } from 'react-router-dom';
 import { getProductVariants, getCartQty, getCartQtyForProduct } from '../../utils/cart';
-import { getProductImages } from '../../utils/productImages';
+import { getProductImages, toWebpUrl } from '../../utils/productImages';
 
 const imageSlideVariants = {
   enter: (direction) => ({
@@ -226,6 +226,7 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
               src={currentImage}
               alt={product.name}
               loading={activeImg === 0 ? 'eager' : 'lazy'}
+              decoding="async"
               ref={firstImgRef}
               onLoad={handleImageReady}
               onError={handleImageReady}
@@ -357,7 +358,7 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
                     <div key={idx} className="flex items-center justify-between p-3 border border-gray-200 rounded-xl hover:border-[#054425]/30 transition-colors bg-white shadow-sm">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 bg-gray-50 rounded-lg p-1 shrink-0 border border-gray-100">
-                          <img src={product.image} alt={product.name} className="w-full h-full object-contain" />
+                          <img src={toWebpUrl(product.image)} alt={product.name} className="w-full h-full object-contain" />
                         </div>
                         <div className="flex flex-col">
                           <span className="text-sm font-semibold text-gray-800">{v.size}</span>

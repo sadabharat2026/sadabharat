@@ -419,11 +419,14 @@ const updateProfile = async (req, res, next) => {
 
     user.name = req.body.name || user.name;
     user.email = req.body.email || user.email;
-    user.mobile = req.body.mobile || user.mobile;
+    user.mobile = req.body.mobile || req.body.phone || user.mobile;
     if (req.body.gender) user.gender = req.body.gender;
 
     const updatedUser = await user.save();
-    res.status(200).json({ success: true, data: { user: updatedUser } });
+    const safeUser = updatedUser.toObject();
+    delete safeUser.password;
+    delete safeUser.otp;
+    res.status(200).json({ success: true, data: { user: safeUser } });
   } catch (error) {
     next(error);
   }
@@ -513,6 +516,44 @@ const deleteAddress = async (req, res, next) => {
   }
 };
 
+const updatePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      res.status(400);
+      throw new Error('Please provide current and new password');
+    }
+    if (String(newPassword).length < 6) {
+      res.status(400);
+      throw new Error('New password must be at least 6 characters');
+    }
+
+    const user = await User.findById(req.user._id || req.user.id);
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
+    }
+    if (!user.password) {
+      res.status(400);
+      throw new Error('This account does not have a password set. Set one from signup/login first.');
+    }
+
+    const matches = await bcrypt.compare(currentPassword, user.password);
+    if (!matches) {
+      res.status(401);
+      throw new Error('Current password is incorrect');
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   signup,
   login,
@@ -528,5 +569,6 @@ module.exports = {
   getUsers,
   getBlockedUsers,
   blockUser,
-  unblockUser
+  unblockUser,
+  updatePassword
 };

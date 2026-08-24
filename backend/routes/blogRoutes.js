@@ -9,16 +9,17 @@ const {
   deleteBlog
 } = require('../controllers/blogController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
+const { cachePublic } = require('../utils/cache');
 
 router.route('/')
-  .get(getBlogs)
+  .get(cachePublic('blogs', 180), getBlogs)
   .post(protect, authorize('admin'), createBlog);
 
 router.route('/admin')
   .get(protect, authorize('admin'), getAdminBlogs);
 
 router.route('/:id')
-  .get(getBlogById)
+  .get(cachePublic('blogs', 180), getBlogById)
   .patch(protect, authorize('admin'), updateBlog)
   .delete(protect, authorize('admin'), deleteBlog);
 

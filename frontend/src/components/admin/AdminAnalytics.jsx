@@ -96,7 +96,7 @@ const AdminAnalytics = () => {
 
   const segmentData = [
     { name: 'One-time', value: summary.oneTimeCustomers || 0 },
-    { name: 'Repeat', value: summary.repeatCustomers || 0 },
+    { name: 'Existing', value: summary.repeatCustomers || 0 },
     { name: 'No orders', value: summary.usersNeverOrdered || 0 }
   ].filter((d) => d.value > 0);
 
@@ -118,7 +118,7 @@ const AdminAnalytics = () => {
             Analytics
           </h1>
           <p className="text-gray-500 text-[13px] font-poppins">
-            Live user growth and repeat customer insights from your store database.
+            Live user growth and new vs existing customer insights from your store database.
           </p>
         </div>
 
@@ -217,7 +217,7 @@ const AdminAnalytics = () => {
             iconColor: 'text-[#50C878]'
           },
           {
-            label: 'Repeat Customers',
+            label: 'Existing Customers',
             value: summary.repeatCustomers ?? 0,
             icon: <FiRepeat />,
             color: 'bg-[#FEF0D5]',
@@ -238,7 +238,7 @@ const AdminAnalytics = () => {
             iconColor: 'text-[#FF8C69]'
           },
           {
-            label: 'Repeat Rate',
+            label: 'Existing Rate',
             value: `${summary.repeatRate ?? 0}%`,
             icon: <FiTrendingUp />,
             color: 'bg-[#EDE7F6]',
@@ -273,10 +273,10 @@ const AdminAnalytics = () => {
           <div className="mb-3">
             <h3 className="text-lg font-['Cormorant',_serif] font-bold text-admin-dark flex items-center gap-2">
               <FiRepeat className="text-admin-gold" size={16} />
-              New vs Repeat Orders
+              New vs Existing
             </h3>
             <p className="text-[11px] text-gray-400 mt-0.5 font-poppins">
-              Daily orders from first-time buyers vs returning customers
+              Daily orders from new customers vs existing customers
             </p>
           </div>
           <div className="flex-1 min-h-0">
@@ -299,7 +299,7 @@ const AdminAnalytics = () => {
                   <RechartsTooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend iconType="circle" wrapperStyle={LEGEND_STYLE} />
                   <Area type="monotone" dataKey="newOrders" name="New customers" stroke="#0A3A20" fill="url(#newOrdersGrad)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="repeatOrders" name="Repeat customers" stroke="#D4AF37" fill="url(#repeatOrdersGrad)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="repeatOrders" name="Existing customers" stroke="#D4AF37" fill="url(#repeatOrdersGrad)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
@@ -311,7 +311,7 @@ const AdminAnalytics = () => {
         <div className="bg-white p-4 md:p-5 rounded-xl border border-gray-100 shadow-sm h-[360px] flex flex-col">
           <div className="mb-3">
             <h3 className="text-lg font-['Cormorant',_serif] font-bold text-admin-dark">Customer Segments</h3>
-            <p className="text-[11px] text-gray-400 mt-0.5 font-poppins">One-time vs repeat vs never ordered</p>
+            <p className="text-[11px] text-gray-400 mt-0.5 font-poppins">New vs existing vs never ordered</p>
           </div>
           <div className="flex-1 min-h-0">
             {segmentData.length > 0 ? (
@@ -387,13 +387,13 @@ const AdminAnalytics = () => {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-4 md:px-5 py-4 border-b border-gray-100">
-            <h3 className="text-lg font-['Cormorant',_serif] font-bold text-admin-dark">Top Repeat Customers</h3>
-            <p className="text-[11px] text-gray-400 mt-0.5 font-poppins">Customers with 2+ orders from live order data</p>
+            <h3 className="text-lg font-['Cormorant',_serif] font-bold text-admin-dark">Existing Customers</h3>
+            <p className="text-[11px] text-gray-400 mt-0.5 font-poppins">Existing customers with 2+ orders from live order data</p>
           </div>
 
           {topRepeatCustomers.length === 0 ? (
             <div className="px-5 py-12 text-center text-sm text-gray-400 font-poppins">
-              No repeat customers yet.
+              No existing customers yet.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -439,13 +439,13 @@ const AdminAnalytics = () => {
 
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-4 md:px-5 py-4 border-b border-gray-100">
-            <h3 className="text-lg font-['Cormorant',_serif] font-bold text-admin-dark">Recent Users</h3>
-            <p className="text-[11px] text-gray-400 mt-0.5 font-poppins">Latest customer accounts from database</p>
+            <h3 className="text-lg font-['Cormorant',_serif] font-bold text-admin-dark">New Customers</h3>
+            <p className="text-[11px] text-gray-400 mt-0.5 font-poppins">Newest customer accounts from database</p>
           </div>
 
           {recentUsers.length === 0 ? (
             <div className="px-5 py-12 text-center text-sm text-gray-400 font-poppins">
-              No users found in database.
+              No new customers found.
             </div>
           ) : (
             <div className="overflow-x-auto">

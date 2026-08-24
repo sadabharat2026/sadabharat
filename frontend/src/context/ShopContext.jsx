@@ -1,12 +1,55 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import realApi from '../utils/api';
 import { initializePushNotifications } from '../services/pushNotificationService';
+import { optimizeMediaUrls, toWebpUrl } from '../utils/productImages';
+
+const unwrapRecord = (row) => {
+  if (!row || typeof row !== 'object') return row;
+  const plain = row._doc && typeof row._doc === 'object' ? { ...row._doc } : { ...row };
+  if (plain._id && typeof plain._id !== 'string') {
+    const asString = typeof plain._id.toString === 'function' ? plain._id.toString() : '';
+    plain._id = asString && asString !== '[object Object]' ? asString : plain._id;
+  }
+  if (plain.image) plain.image = toWebpUrl(plain.image);
+  if (plain.url) plain.url = toWebpUrl(plain.url);
+  if (Array.isArray(plain.images)) plain.images = plain.images.map(toWebpUrl);
+  return plain;
+};
 
 const ShopContext = createContext();
 
 export const useShop = () => useContext(ShopContext);
+
+const STORE_CACHE_KEY = 'sadabharat_store_v4';
+const STORE_CACHE_MS = 10 * 60 * 1000;
+
+const readStoreCache = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(STORE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.products) || Date.now() - parsed.savedAt > STORE_CACHE_MS) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const writeStoreCache = (payload) => {
+  try {
+    sessionStorage.setItem(STORE_CACHE_KEY, JSON.stringify({
+      ...payload,
+      savedAt: Date.now()
+    }));
+  } catch {
+    /* ignore quota / private mode */
+  }
+};
 
 const FlyItem = ({ item, onComplete }) => {
   const [position, setPosition] = useState({ x: item.startX, y: item.startY, scale: 1, opacity: 1 });
@@ -29,7 +72,7 @@ const FlyItem = ({ item, onComplete }) => {
 
   return (
     <img
-      src={item.image}
+      src={toWebpUrl(item.image)}
       alt="flying product"
       className="fixed z-[9999] rounded-full shadow-2xl pointer-events-none object-cover border-2 border-white"
       style={{
@@ -46,21 +89,22 @@ const FlyItem = ({ item, onComplete }) => {
 };
 
 export const ShopProvider = ({ children }) => {
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [offers, setOffers] = useState([]);
-  const [banners, setBanners] = useState([]);
+  const cachedStore = useMemo(() => readStoreCache(), []);
+  const [products, setProducts] = useState(cachedStore?.products || []);
+  const [categories, setCategories] = useState(cachedStore?.categories || []);
+  const [offers, setOffers] = useState(cachedStore?.offers || []);
+  const [banners, setBanners] = useState(cachedStore?.banners || []);
   const [cart, setCart] = useState(() => {
     try {
       const saved = localStorage.getItem('sadabharat_cart') || localStorage.getItem('saundarya_cart');
-      if (saved && saved !== 'undefined') return JSON.parse(saved);
+      if (saved && saved !== 'undefined') return optimizeMediaUrls(JSON.parse(saved));
     } catch (e) { /* ignore */ }
     return [];
   });
   const [wishlist, setWishlist] = useState(() => {
     try {
       const saved = localStorage.getItem('sadabharat_wishlist') || localStorage.getItem('saundarya_wishlist');
-      if (saved && saved !== 'undefined') return JSON.parse(saved);
+      if (saved && saved !== 'undefined') return optimizeMediaUrls(JSON.parse(saved));
     } catch (e) { /* ignore */ }
     return [];
   });
@@ -71,9 +115,10 @@ export const ShopProvider = ({ children }) => {
     estDeliveryDays: '3-5 Business Days',
     shippingPartner: 'Standard Courier',
     trackingUrl: 'https://shiprocket.co/tracking/',
-    supportContact: '+91 97727 77736'
+    supportContact: '+91 97727 77736',
+    ...(cachedStore?.settings || {})
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedStore);
 
   // Order States
   const [lastOrder, setLastOrder] = useState(null);
@@ -84,6 +129,7 @@ export const ShopProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [cartQuote, setCartQuote] = useState(null);
 
   // Flying Animation State
   const [flyingItems, setFlyingItems] = useState([]);
@@ -117,9 +163,10 @@ export const ShopProvider = ({ children }) => {
   }, []);
 
   // Fetch Core Data
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (opts = {}) => {
+    const silent = Boolean(opts.silent);
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [prodRes, catRes, banRes, setRes, offerRes] = await Promise.all([
         realApi.get('/products'),
         realApi.get('/categories'),
@@ -139,7 +186,7 @@ export const ShopProvider = ({ children }) => {
         console.error("Failed to parse custom products", e);
       }
 
-      const apiProducts = prodRes.data.data.products || [];
+      const apiProducts = (prodRes.data.data.products || []).map(unwrapRecord);
       let mergedProducts = [...apiProducts];
 
       // Add custom products at the beginning if they don't already exist by _id
@@ -153,17 +200,20 @@ export const ShopProvider = ({ children }) => {
 
       const apiCategories = catRes.data.data;
       if (apiCategories && Array.isArray(apiCategories) && apiCategories.length > 0) {
-        const mappedCategories = apiCategories.map(c => ({
-          _id: c._id,
-          name: c.title || c.name,
-          image: c.url || c.image
-        }));
+        const mappedCategories = apiCategories.map((raw) => {
+          const c = unwrapRecord(raw);
+          return {
+            _id: c._id,
+            name: c.title || c.name,
+            image: toWebpUrl(c.url || c.image)
+          };
+        });
         setCategories(mappedCategories);
       } else {
         setCategories([]);
       }
 
-      const apiBanners = banRes.data.data.banners || [];
+      const apiBanners = (banRes.data.data.banners || []).map(unwrapRecord);
       setBanners(apiBanners);
 
       if (setRes.data.data.settings) {
@@ -171,24 +221,46 @@ export const ShopProvider = ({ children }) => {
       }
 
       if (offerRes.data.success && offerRes.data.data) {
-        setOffers(offerRes.data.data);
+        const offerList = Array.isArray(offerRes.data.data)
+          ? offerRes.data.data.map(unwrapRecord)
+          : offerRes.data.data;
+        setOffers(offerList);
       }
+
+      writeStoreCache({
+        products: mergedProducts,
+        categories: apiCategories && Array.isArray(apiCategories)
+          ? apiCategories.map((raw) => {
+              const c = unwrapRecord(raw);
+              return {
+                _id: c._id,
+                name: c.title || c.name,
+                image: toWebpUrl(c.url || c.image)
+              };
+            })
+          : [],
+        banners: apiBanners,
+        offers: offerRes.data.success && offerRes.data.data
+          ? (Array.isArray(offerRes.data.data) ? offerRes.data.data.map(unwrapRecord) : offerRes.data.data)
+          : [],
+        settings: setRes.data.data.settings || null
+      });
     } catch (err) {
       console.error("Failed to fetch store data, using high-fidelity fallback:", err.message);
-      
-      // Attempt local storage fallback merge as well
-      let customProducts = [];
-      try {
-        const savedCustom = localStorage.getItem('sadabharat_custom_products');
-        if (savedCustom) {
-          customProducts = JSON.parse(savedCustom);
-        }
-      } catch (e) {}
 
-      let mergedProducts = [...(customProducts || [])];
-      setProducts(mergedProducts);
-      setCategories([]);
-      setBanners([]);
+      if (!silent) {
+        let customProducts = [];
+        try {
+          const savedCustom = localStorage.getItem('sadabharat_custom_products');
+          if (savedCustom) {
+            customProducts = JSON.parse(savedCustom);
+          }
+        } catch (e) {}
+
+        setProducts([...(customProducts || [])]);
+        setCategories([]);
+        setBanners([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -219,15 +291,40 @@ export const ShopProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    fetchData({ silent: Boolean(cachedStore) });
     checkAuth();
-  }, [fetchData, checkAuth]);
+  }, [fetchData, checkAuth, cachedStore]);
 
   useEffect(() => {
     if (!isAuthLoading && isAuthenticated) {
       initializePushNotifications();
     }
   }, [isAuthLoading, isAuthenticated]);
+
+  const cartQuoteKey = useMemo(
+    () => JSON.stringify(cart.map((item) => [item._id, item.quantity || 1, item.selectedSize || ''])),
+    [cart]
+  );
+
+  useEffect(() => {
+    if (!cart.length) {
+      setCartQuote(null);
+      return undefined;
+    }
+    let live = true;
+    api.post('/orders/quote', {
+      items: cart.map((item) => ({
+        product: item._id,
+        quantity: item.quantity || 1,
+        size: item.selectedSize
+      }))
+    }).then((res) => {
+      if (live) setCartQuote(res.data.data);
+    }).catch(() => {
+      if (live) setCartQuote(null);
+    });
+    return () => { live = false; };
+  }, [cartQuoteKey]);
 
   useEffect(() => {
     localStorage.setItem('sadabharat_cart', JSON.stringify(cart));
@@ -296,32 +393,23 @@ export const ShopProvider = ({ children }) => {
         throw new Error("User unauthorized.");
       }
 
-      const defaultTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-      const totalAmount = customTotal !== undefined ? customTotal : defaultTotal;
-
-      const { couponCode, ...restDetails } = details;
+      const { couponCode, items, totalAmount, ...restDetails } = details;
       const shippingAddress = {
         ...restDetails,
         postalCode: restDetails.pincode,
-        country: restDetails.country || "India"
+        country: restDetails.country || 'India'
       };
 
       const payload = {
         items: (details.items || cart).map(item => ({
           product: item.product || item._id,
           name: item.name,
-          price: item.price,
           quantity: item.quantity,
           image: item.image,
           size: item.size || item.selectedSize
         })),
-        subTotal: breakdown?.subtotal,
-        taxAmount: breakdown?.taxAmount,
-        taxRate: breakdown?.taxRate,
-        shippingAmount: breakdown?.shippingValue,
-        actualShippingAmount: breakdown?.actualShipping,
-        totalAmount: totalAmount,
         shippingAddress,
+        paymentMethod: 'COD',
         couponCode: details.couponCode || null
       };
 
@@ -444,6 +532,7 @@ export const ShopProvider = ({ children }) => {
       offers,
       banners,
       cart,
+      cartQuote,
       wishlist,
       loading,
       isAuthLoading,
@@ -471,7 +560,7 @@ export const ShopProvider = ({ children }) => {
       addProduct,
       cartCount: cart.length,
       wishlistCount: wishlist.length,
-      cartTotal: cart.reduce((acc, item) => acc + (item.price * item.quantity), 0)
+      cartTotal: cartQuote?.subtotal || 0
     }}>
       {children}
       {flyingItems.map(item => (

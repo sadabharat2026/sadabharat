@@ -12,7 +12,7 @@ import api from '../../utils/api';
 import ChatWindow from '../shared/ChatWindow';
 import { getConversationId } from '../../services/chatService';
 import { getProductVariants, getCartQty, resolveSelectedSize } from '../../utils/cart';
-import { getProductImages } from '../../utils/productImages';
+import { getProductImages, toWebpUrl } from '../../utils/productImages';
 
 import ConsultationCTA from './ConsultationCTA';
 import ProductCard from './ProductCard';
@@ -217,6 +217,21 @@ const ProductDetail = () => {
   const [selectedPolicyTab, setSelectedPolicyTab] = useState('Genuine');
   const [availableCoupons, setAvailableCoupons] = useState([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [priceQuote, setPriceQuote] = useState(null);
+
+  useEffect(() => {
+    if (!id) return undefined;
+    let live = true;
+    api.post('/orders/quote', {
+      items: [{ product: id, quantity: 1, size: selectedSize }],
+      couponCode: appliedCoupon?.code
+    }).then((res) => {
+      if (live) setPriceQuote(res.data.data);
+    }).catch(() => {
+      if (live) setPriceQuote(null);
+    });
+    return () => { live = false; };
+  }, [id, selectedSize, appliedCoupon?.code]);
 
   const handleChatClick = () => {
     if (!isAuthenticated || !user) {
@@ -334,20 +349,11 @@ const ProductDetail = () => {
 
   const currentSize = resolveSelectedSize(product, selectedSize);
   const selectedVariant = variants.find(v => v.size === currentSize) || variants[0] || product;
-  const basePrice = selectedVariant?.price || product?.price || 0;
-  const oldPrice = selectedVariant?.oldPrice || product?.oldPrice || Math.round(basePrice * 1.3);
-
+  const quoted = priceQuote?.items?.[0];
+  const basePrice = quoted?.price ?? selectedVariant?.price ?? product?.price ?? 0;
+  const oldPrice = selectedVariant?.oldPrice || product?.oldPrice || null;
+  const finalPrice = quoted?.lineTotal ?? basePrice;
   const totalQtyInCart = getCartQty(cart, product._id, currentSize);
-
-  const calculateDiscountedPrice = () => {
-    if (!appliedCoupon) return basePrice;
-    if (appliedCoupon.discountType === 'percentage') {
-      return Math.round(basePrice * (1 - appliedCoupon.discountValue / 100));
-    }
-    return Math.max(0, basePrice - appliedCoupon.discountValue);
-  };
-
-  const finalPrice = calculateDiscountedPrice();
 
   const handleAddToCart = (e) => {
     if (variants.length > 0 && !currentSize) {
@@ -388,7 +394,7 @@ const ProductDetail = () => {
       packSize: currentSize
     };
     setIsCartDrawerOpen(false);
-    navigate('/checkout', { state: { directProduct: directProductData } });
+    navigate('/checkout', { state: { directProduct: directProductData, couponApplied: appliedCoupon?.code } });
   };
 
   return (
@@ -446,7 +452,7 @@ const ProductDetail = () => {
                     key={selectedImageIndex}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    src={galleryImages[selectedImageIndex] || product.image}
+                    src={galleryImages[selectedImageIndex] || toWebpUrl(product.image)}
                     alt={product.name}
                     className="max-w-full max-h-full object-contain drop-shadow-2xl scale-95 hover:scale-100 transition-transform duration-700"
                   />
@@ -568,18 +574,14 @@ const ProductDetail = () => {
                 </div>
 
                 <div className="flex items-baseline gap-3 mb-0">
-                  <span className="text-2xl font-medium font-sans text-gray-900 tracking-tight">₹{finalPrice.toFixed(2)}</span>
+                  <span className="text-2xl font-medium font-sans text-gray-900 tracking-tight">₹{Number(finalPrice).toFixed(2)}</span>
                   {appliedCoupon ? (
-                    <span className="text-[14px] text-gray-400 line-through font-medium">₹{basePrice.toFixed(2)}</span>
-                  ) : (
-                    <span className="text-[14px] text-gray-400 line-through font-medium">₹{oldPrice.toFixed(2)}</span>
-                  )}
-                  {appliedCoupon && appliedCoupon.discountType === 'percentage' ? (
+                    <span className="text-[14px] text-gray-400 line-through font-medium">₹{Number(basePrice).toFixed(2)}</span>
+                  ) : oldPrice ? (
+                    <span className="text-[14px] text-gray-400 line-through font-medium">₹{Number(oldPrice).toFixed(2)}</span>
+                  ) : null}
+                  {appliedCoupon && appliedCoupon.discountType === 'percentage' && (
                     <span className="text-[13px] font-bold text-[#054425]">{appliedCoupon.discountValue}% OFF</span>
-                  ) : (
-                    <span className="text-[13px] font-bold text-[#054425]">
-                      {Math.round(((oldPrice - basePrice) / oldPrice) * 100)}% OFF
-                    </span>
                   )}
                 </div>
                 <p className="text-[11px] text-gray-500 font-medium">Inclusive of all taxes</p>
@@ -808,18 +810,12 @@ const ProductDetail = () => {
                 <div className="space-y-2 text-[11px] text-gray-600 font-medium">
                   <div className="flex justify-between items-center">
                     <span>M.R.P. <span className="text-[9px] text-gray-400 font-normal">(Incl. of all taxes)</span></span>
-                    <span className="text-gray-900 font-bold">₹{appliedCoupon ? basePrice.toFixed(2) : oldPrice.toFixed(2)}</span>
+                    <span className="text-gray-900 font-bold">₹{Number(oldPrice || basePrice).toFixed(2)}</span>
                   </div>
-                  {!appliedCoupon && (
-                    <div className="flex justify-between items-center text-[#054425]">
-                      <span>Product Discount ({Math.round(((oldPrice - basePrice) / oldPrice) * 100)}%)</span>
-                      <span>- ₹{(oldPrice - basePrice).toFixed(2)}</span>
-                    </div>
-                  )}
                   {appliedCoupon && (
                     <div className="flex justify-between items-center text-[#054425]">
                       <span>Coupon Discount ({appliedCoupon.code})</span>
-                      <span>- ₹{(basePrice - finalPrice).toFixed(2)}</span>
+                      <span>- ₹{Number(priceQuote?.discountAmount || 0).toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex justify-between items-center text-gray-400 pt-2 border-t border-gray-200">
@@ -885,7 +881,13 @@ const ProductDetail = () => {
                           {new Date(r.createdAt).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-[11px] text-gray-600 leading-relaxed font-serif italic">"{r.review}"</p>
+                      <p className="text-[11px] text-gray-600 leading-relaxed font-serif italic">"{r.comment || r.review}"</p>
+                      {r.adminReply && (
+                        <div className="mt-3 ml-8 bg-[#E8F5E9] border border-green-100 rounded-xl p-3">
+                          <p className="text-[8px] font-black uppercase tracking-widest text-[#054425] mb-1">Store reply</p>
+                          <p className="text-[11px] text-gray-700 leading-relaxed">{r.adminReply}</p>
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (

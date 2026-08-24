@@ -247,8 +247,8 @@ const clearVendorPayout = async (req, res) => {
 const getAdminReviews = async (req, res) => {
   try {
     const reviews = await Review.find()
-      .populate('product', 'name image')
-      .populate('user', 'name phone')
+      .populate('product', 'name image images')
+      .populate('user', 'name phone mobile')
       .sort({ createdAt: -1 });
     res.status(200).json({ success: true, data: { reviews } });
   } catch (error) {
@@ -272,6 +272,46 @@ const deleteReview = async (req, res) => {
   try {
     await Review.findByIdAndDelete(req.params.id);
     res.status(200).json({ success: true, message: 'Review deleted' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const replyReview = async (req, res) => {
+  try {
+    const reply = String(req.body.reply ?? req.body.adminReply ?? '').trim();
+    if (!reply) {
+      return res.status(400).json({ success: false, message: 'Reply text is required' });
+    }
+
+    const review = await Review.findById(req.params.id);
+    if (!review) {
+      return res.status(404).json({ success: false, message: 'Review not found' });
+    }
+
+    review.adminReply = reply;
+    review.adminReplyAt = new Date();
+    if (req.user?._id) review.adminReplyBy = req.user._id;
+    await review.save();
+
+    if (review.user) {
+      sendNotificationToUser(
+        review.user,
+        'user',
+        {
+          title: 'Reply to your feedback',
+          body: reply.length > 140 ? `${reply.slice(0, 140)}…` : reply,
+          data: { relatedId: review._id, relatedModel: 'Review' }
+        },
+        'info'
+      ).catch(() => {});
+    }
+
+    const populated = await Review.findById(review._id)
+      .populate('product', 'name image images')
+      .populate('user', 'name phone mobile');
+
+    res.status(200).json({ success: true, message: 'Reply saved', data: { review: populated } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -595,6 +635,7 @@ module.exports = {
   getAdminReviews,
   toggleReviewApproval,
   deleteReview,
+  replyReview,
   getAdminTestimonials,
   toggleTestimonialApproval,
   createTestimonial,
