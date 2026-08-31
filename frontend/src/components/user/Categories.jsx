@@ -13,6 +13,9 @@ import iconSupplements from '../../assets/images/icons/icon_supplements_17799117
 import iconBodyCare from '../../assets/images/icons/icon_body_care_1779911767707.png';
 import iconAromatherapy from '../../assets/images/icons/icon_aromatherapy_1779911786264.png';
 import iconBabyCare from '../../assets/images/icons/icon_baby_care_1779911800390.png';
+import iconWellness from '../../assets/images/icons/icon_wellness.png';
+import iconImmunity from '../../assets/images/icons/icon_immunity.png';
+import iconDigestiveCare from '../../assets/images/icons/icon_digestive_care.png';
 
 import ScrollHeading from '../shared/ScrollHeading';
 
@@ -28,9 +31,12 @@ const Categories = () => {
     
     if (n.includes('hair')) iconSrc = iconHairCare;
     else if (n.includes('skin')) iconSrc = iconSkinCare;
-    else if (n.includes('health') || n.includes('well') || n.includes('immun')) iconSrc = iconHealthCare;
+    else if (n.includes('health')) iconSrc = iconHealthCare;
+    else if (n.includes('well')) iconSrc = iconWellness;
+    else if (n.includes('immun')) iconSrc = iconImmunity;
+    else if (n.includes('digest')) iconSrc = iconDigestiveCare;
     else if (n.includes('tea') || n.includes('herbal')) iconSrc = iconHerbalTea;
-    else if (n.includes('supplement') || n.includes('digest')) iconSrc = iconSupplements;
+    else if (n.includes('supplement')) iconSrc = iconSupplements;
     else if (n.includes('body')) iconSrc = iconBodyCare;
     else if (n.includes('aroma')) iconSrc = iconAromatherapy;
     else if (n.includes('baby')) iconSrc = iconBabyCare;
@@ -108,7 +114,7 @@ const Categories = () => {
                             isSelected ? 'scale-105 ring-2 ring-[#054425] ring-offset-2' : 'group-hover:scale-105 group-hover:shadow-md'
                           }`}
                         >
-                          {cat.image ? (
+                          {cat.image && !cat.image.includes('unsplash.com') ? (
                             <img src={cat.image} alt={cat.name} className="w-14 h-14 md:w-16 md:h-16 lg:w-[72px] lg:h-[72px] object-cover rounded-full bg-white shadow-sm" />
                           ) : getCategoryIcon(cat.name)}
                         </div>
