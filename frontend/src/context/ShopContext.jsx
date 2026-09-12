@@ -22,7 +22,7 @@ const ShopContext = createContext();
 
 export const useShop = () => useContext(ShopContext);
 
-const STORE_CACHE_KEY = 'sadabharat_store_v8';
+const STORE_CACHE_KEY = 'sadabharat_store_v9';
 const STORE_CACHE_MS = 10 * 60 * 1000;
 
 const readStoreCache = () => {
