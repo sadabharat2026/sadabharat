@@ -241,7 +241,7 @@ const AdminVendors = () => {
                                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Uploaded Documents</p>
                                         <div className="flex flex-wrap gap-4">
                                             {selectedVendor.documents.map((doc, idx) => {
-                                                const url = doc.startsWith('http') ? doc : `http://localhost:5000${doc}`;
+                                                const url = doc.startsWith('http') ? doc : `http://localhost:5200${doc}`;
                                                 const isImage = url.match(/\.(jpeg|jpg|gif|png)$/i) != null;
                                                 return (
                                                     <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="block w-24 h-24 rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white">

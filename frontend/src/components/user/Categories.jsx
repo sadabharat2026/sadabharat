@@ -40,6 +40,7 @@ const Categories = () => {
     else if (n.includes('body')) iconSrc = iconBodyCare;
     else if (n.includes('aroma')) iconSrc = iconAromatherapy;
     else if (n.includes('baby')) iconSrc = iconBabyCare;
+    else if (n.includes('combo')) iconSrc = iconHairCare;
     
     return <img src={iconSrc} alt={name} className="w-14 h-14 md:w-16 md:h-16 lg:w-[72px] lg:h-[72px] object-cover rounded-full" />;
   };

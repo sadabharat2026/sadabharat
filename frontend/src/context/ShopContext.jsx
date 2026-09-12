@@ -22,7 +22,7 @@ const ShopContext = createContext();
 
 export const useShop = () => useContext(ShopContext);
 
-const STORE_CACHE_KEY = 'sadabharat_store_v5';
+const STORE_CACHE_KEY = 'sadabharat_store_v8';
 const STORE_CACHE_MS = 10 * 60 * 1000;
 
 const readStoreCache = () => {
@@ -429,6 +429,7 @@ export const ShopProvider = ({ children }) => {
   };
 
   const addToCart = (product) => {
+    if (!product || product.comingSoon === true) return;
     const selectedSize = product.selectedSize ?? product.packSize ?? null;
     const line = { ...product, selectedSize, packSize: product.packSize || selectedSize };
     setCart(prev => {

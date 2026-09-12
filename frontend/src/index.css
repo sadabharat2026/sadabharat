@@ -114,6 +114,24 @@ section:first-of-type {
   bottom: 6px !important;
 }
 
+/* Equal-height product cards in carousels */
+.recommended-swiper .swiper-wrapper,
+.bestseller-swiper .swiper-wrapper {
+  align-items: stretch;
+}
+
+.recommended-swiper .swiper-slide,
+.bestseller-swiper .swiper-slide {
+  height: auto;
+  display: flex;
+}
+
+.recommended-swiper .swiper-slide > *,
+.bestseller-swiper .swiper-slide > * {
+  width: 100%;
+  height: 100%;
+}
+
 @keyframes product-card-shimmer {
   0% { transform: translateX(-130%); }
   100% { transform: translateX(130%); }

@@ -30,6 +30,7 @@ const productSchema = new mongoose.Schema({
   tags: { type: String },
   bestseller: { type: Boolean, default: false },
   recommended: { type: Boolean, default: false },
+  comingSoon: { type: Boolean, default: false },
   vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor' },
   admin: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' }

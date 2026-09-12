@@ -13,6 +13,7 @@ import ChatWindow from '../shared/ChatWindow';
 import { getConversationId } from '../../services/chatService';
 import { getProductVariants, getCartQty, resolveSelectedSize } from '../../utils/cart';
 import { getProductImages, toWebpUrl } from '../../utils/productImages';
+import { isComingSoonProduct } from '../../utils/productAccess';
 
 import ConsultationCTA from './ConsultationCTA';
 import ProductCard from './ProductCard';
@@ -206,6 +207,13 @@ const ProductDetail = () => {
   const product = products.find(p => p._id === id);
   const galleryImages = getProductImages(product);
 
+  useEffect(() => {
+    if (loading) return;
+    if (!product || isComingSoonProduct(product)) {
+      navigate('/shop', { replace: true });
+    }
+  }, [loading, product, navigate]);
+
   // Review States
   const [reviews, setReviews] = useState([]);
   const [canSubmitReview, setCanSubmitReview] = useState(false);
@@ -337,6 +345,14 @@ const ProductDetail = () => {
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <h2 className="text-2xl font-serif font-black text-brand-dark mb-4">Product Not Found</h2>
         <Link to="/shop" className="text-brand-pink font-bold uppercase tracking-widest text-xs">Back to Shop</Link>
+      </div>
+    );
+  }
+
+  if (isComingSoonProduct(product)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-dark"></div>
       </div>
     );
   }

@@ -6,6 +6,7 @@ import { useShop } from '../../context/ShopContext';
 import { useNavigate } from 'react-router-dom';
 import { getProductVariants, getCartQty, getCartQtyForProduct } from '../../utils/cart';
 import { getProductImages, toWebpUrl } from '../../utils/productImages';
+import { isComingSoonProduct } from '../../utils/productAccess';
 
 const imageSlideVariants = {
   enter: (direction) => ({
@@ -35,6 +36,8 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
   const cardRef = useRef(null);
   const liked = isInWishlist(product._id);
   const navigate = useNavigate();
+  const comingSoon = isComingSoonProduct(product) || badge === 'coming-soon';
+  const displayBadge = comingSoon ? 'coming-soon' : badge;
 
   const cardImages = useMemo(() => getProductImages(product), [product]);
   const currentImage = cardImages[activeImg] || cardImages[0] || product.image;
@@ -85,6 +88,7 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
 
   const handleAddClick = (e) => {
     e.stopPropagation();
+    if (comingSoon) return;
     if (hasMultipleVariants) {
       setShowVariants(true);
     } else {
@@ -95,6 +99,7 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
 
   const handleDecrease = (e) => {
     e.stopPropagation();
+    if (comingSoon) return;
     if (hasMultipleVariants) {
       setShowVariants(true);
     } else {
@@ -110,6 +115,7 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
 
   const handleIncrease = (e) => {
     e.stopPropagation();
+    if (comingSoon) return;
     if (hasMultipleVariants) {
       setShowVariants(true);
     } else {
@@ -131,6 +137,7 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
       e.preventDefault();
       e.stopPropagation();
     }
+    if (comingSoon) return;
     
     if (!liked && triggerFlyToWishlist && product.image) {
       triggerFlyToWishlist(e, product.image);
@@ -140,6 +147,7 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
   };
 
   const handleCardClick = () => {
+    if (comingSoon) return;
     navigate(`/product/${product._id}`);
   };
 
@@ -151,13 +159,15 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
       onMouseLeave={() => setIsHovering(false)}
       initial={{ opacity: 0, y: 22 }}
       whileInView={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4 }}
+      whileHover={comingSoon ? undefined : { y: -4 }}
       viewport={{ once: true, amount: 0.2 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="bg-[#EBF5EE] border border-[#054425]/10 rounded-lg flex flex-col h-full group relative cursor-pointer hover:shadow-lg transition-shadow duration-300 overflow-hidden"
+      className={`bg-[#EBF5EE] border border-[#054425]/10 rounded-lg flex flex-col h-full group relative overflow-hidden transition-shadow duration-300 ${
+        comingSoon ? 'cursor-default' : 'cursor-pointer hover:shadow-lg'
+      }`}
     >
       {/* Corner Ribbon Badge — Top Left */}
-      {badge === 'new' && (
+      {displayBadge === 'new' && (
         <div className="absolute top-0 left-0 z-20 overflow-hidden w-[80px] h-[80px] pointer-events-none">
           <div
             className="absolute top-[18px] left-[-22px] w-[90px] text-center py-[5px] bg-gradient-to-r from-[#054425] to-[#0a6338] text-white text-[8px] font-black uppercase tracking-wide shadow-lg"
@@ -167,7 +177,7 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
           </div>
         </div>
       )}
-      {badge === 'limited' && (
+      {displayBadge === 'limited' && (
         <div className="absolute top-0 left-0 z-20 overflow-hidden w-[80px] h-[80px] pointer-events-none">
           <div
             className="absolute top-[18px] left-[-22px] w-[90px] text-center py-[5px] bg-gradient-to-r from-[#C0392B] to-[#e74c3c] text-white text-[8px] font-black uppercase tracking-wide shadow-lg"
@@ -177,9 +187,19 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
           </div>
         </div>
       )}
+      {displayBadge === 'coming-soon' && (
+        <div className="absolute top-0 left-0 z-20 overflow-hidden w-[90px] h-[90px] pointer-events-none">
+          <div
+            className="absolute top-[20px] left-[-28px] w-[110px] text-center py-[5px] bg-gradient-to-r from-[#054425] to-[#0a6338] text-white text-[7px] font-black uppercase tracking-wide shadow-lg"
+            style={{ transform: 'rotate(-45deg)', fontFamily: "'Poppins', sans-serif" }}
+          >
+            Coming Soon
+          </div>
+        </div>
+      )}
 
       {/* Product Image Panel */}
-      <div className="relative aspect-square overflow-hidden bg-white min-w-0">
+      <div className="relative aspect-square overflow-hidden bg-[#f7faf8] min-w-0 shrink-0">
         
         {/* Special Offer Starburst Badge */}
         {offerBannerText && (
@@ -194,21 +214,27 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
         )}
 
         {/* Wishlist Heart Icon (Top-Right) */}
-        <motion.button
-          type="button"
-          onClick={handleWishlist}
-          whileTap={{ scale: 0.8 }}
-          animate={liked ? { scale: [1, 1.3, 1] } : {}}
-          transition={{ duration: 0.3 }}
-          className={`absolute top-3 right-3 z-30 transition-colors p-1.5 rounded-full bg-white shadow-md ${
-            liked ? 'text-red-500' : 'text-gray-300 hover:text-red-500'
-          }`}
-        >
-          <FiHeart className={`w-3.5 h-3.5 ${liked ? 'fill-current' : ''}`} />
-        </motion.button>
+        {!comingSoon && (
+          <motion.button
+            type="button"
+            onClick={handleWishlist}
+            whileTap={{ scale: 0.8 }}
+            animate={liked ? { scale: [1, 1.3, 1] } : {}}
+            transition={{ duration: 0.3 }}
+            className={`absolute top-3 right-3 z-30 transition-colors p-1.5 rounded-full bg-white shadow-md ${
+              liked ? 'text-red-500' : 'text-gray-300 hover:text-red-500'
+            }`}
+          >
+            <FiHeart className={`w-3.5 h-3.5 ${liked ? 'fill-current' : ''}`} />
+          </motion.button>
+        )}
+
+        {comingSoon && (
+          <div className="absolute inset-0 z-[15] bg-white/35 pointer-events-none" />
+        )}
 
         {!imgLoaded && (
-          <div className="absolute inset-2 rounded-md product-card-shimmer-load z-[5]" />
+          <div className="absolute inset-0 product-card-shimmer-load z-[5]" />
         )}
 
         <AnimatePresence initial={false} custom={direction}>
@@ -220,7 +246,7 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
             animate="center"
             exit="exit"
             transition={{ x: { type: 'spring', stiffness: 280, damping: 32 }, opacity: { duration: 0.28 } }}
-            className="absolute inset-0 flex items-center justify-center p-2"
+            className="absolute inset-0"
           >
             <img
               src={currentImage}
@@ -230,7 +256,7 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
               ref={firstImgRef}
               onLoad={handleImageReady}
               onError={handleImageReady}
-              className="max-h-full max-w-full object-contain relative z-[1]"
+              className="absolute inset-0 w-full h-full object-cover object-center z-[1]"
             />
           </motion.div>
         </AnimatePresence>
@@ -259,18 +285,18 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
       </div>
 
       {/* Product Details Panel */}
-      <div className="px-2 md:px-3 pb-3 pt-2 text-left flex flex-col flex-1 relative bg-transparent">
+      <div className="px-2 md:px-3 pb-3 pt-2 text-left flex flex-col flex-1 min-h-[118px] md:min-h-[128px] relative bg-transparent">
         
-        {/* Product Title */}
+        {/* Product Title — fixed 2-line height so cards align */}
         <h3 
-          className="text-[11px] md:text-sm text-[#054425] font-bold line-clamp-2 leading-snug mb-1"
+          className="text-[11px] md:text-sm text-[#054425] font-bold line-clamp-2 leading-snug mb-1 min-h-[2.2em] md:min-h-[2.5em]"
           style={{ fontFamily: "'Poppins', sans-serif" }}
         >
           {product.name}
         </h3>
 
         {/* Variant & Rating Parallel Layout */}
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-2 min-h-[22px]">
           <p className="text-[9px] md:text-[10px] text-gray-400 font-semibold mb-0">
             {product.packSize || '100 ml'}
           </p>
@@ -283,20 +309,26 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
         </div>
 
         {/* Pricing & Add Button Parallel Layout */}
-        <div className="flex items-center justify-between mt-auto font-['Poppins']">
-          <div className="flex flex-col">
+        <div className="flex items-center justify-between mt-auto font-['Poppins'] gap-2">
+          <div className="flex flex-col justify-center min-h-[28px] md:min-h-[32px]">
             <span className="text-[#054425] font-bold text-xs md:text-sm leading-none">
               ₹{product.price}
             </span>
-            {product.oldPrice && (
-              <span className="text-gray-400 text-[9px] md:text-[10px] line-through font-medium leading-none mt-1">
-                ₹{product.oldPrice}
-              </span>
-            )}
+            <span className={`text-gray-400 text-[9px] md:text-[10px] line-through font-medium leading-none mt-1 ${product.oldPrice ? 'visible' : 'invisible'}`}>
+              ₹{product.oldPrice || product.price}
+            </span>
           </div>
 
-          <div className="flex items-end h-[30px] md:h-[32px]">
-            {totalQty === 0 ? (
+          <div className="flex items-end shrink-0 h-[30px] md:h-[32px]">
+            {comingSoon ? (
+              <button
+                type="button"
+                disabled
+                className="flex items-center justify-center border border-[#054425]/30 rounded px-2.5 md:px-3 h-full bg-[#054425]/5 cursor-not-allowed whitespace-nowrap"
+              >
+                <span className="text-[8px] md:text-[9px] font-bold text-[#054425]/70 leading-none uppercase tracking-wide">Coming Soon</span>
+              </button>
+            ) : totalQty === 0 ? (
               <button
                 type="button"
                 onClick={handleAddClick}

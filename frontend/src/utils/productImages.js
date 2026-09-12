@@ -78,7 +78,7 @@ export const optimizeMediaUrls = (value, seen = new WeakSet()) => {
 export const resolveUploadedUrl = (uploadedUrl) => {
   if (!uploadedUrl) return '';
   if (uploadedUrl.startsWith('http://') || uploadedUrl.startsWith('https://')) return toWebpUrl(uploadedUrl);
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5200/api';
   const backendUrl = apiUrl.replace(/\/api\/?$/, '');
   return `${backendUrl}${uploadedUrl.startsWith('/') ? uploadedUrl : `/${uploadedUrl}`}`;
 };

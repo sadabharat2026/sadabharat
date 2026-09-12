@@ -17,27 +17,25 @@ const FeaturedProducts = () => {
   const [activeTab, setActiveTab] = useState('All');
 
   const getProducts = () => {
-    let base = [...products].filter(
-      p => p.recommended === true || p.category?.toLowerCase() === 'skin care'
-    );
+    let base = [...products];
+    // Prefer main products first so the 3 accessible items are visible
+    base.sort((a, b) => Number(Boolean(a.comingSoon)) - Number(Boolean(b.comingSoon)));
     if (activeTab === 'Best Sellers') {
-      base = base.filter(p => p.bestseller || p.rating >= 4.5).sort((a, b) => b.rating - a.rating);
+      base = base.filter((p) => !p.comingSoon && (p.bestseller || p.rating >= 4.5)).sort((a, b) => b.rating - a.rating);
     } else if (activeTab === 'New Arrivals') {
-      // treat last 30% of IDs as new arrivals
-      base = base.slice(Math.floor(base.length * 0.6));
+      base = base.filter((p) => !p.comingSoon).slice(0, 8);
     }
     return base.slice(0, 8);
   };
 
   const recommended = getProducts();
 
-  // Assign badges to some cards
+  // Coming Soon products always get the ribbon; mains can keep New/Limited accents
   const getBadge = (product, index) => {
+    if (product.comingSoon) return 'coming-soon';
     if (activeTab === 'New Arrivals') return 'new';
     if (activeTab === 'Best Sellers') return index === 0 ? 'limited' : undefined;
-    // In "All" mode — sprinkle badges on alternating cards
-    if (index % 4 === 0) return 'new';
-    if (index % 4 === 2) return 'limited';
+    if (index === 0) return 'new';
     return undefined;
   };
 
@@ -122,7 +120,7 @@ const FeaturedProducts = () => {
             className="recommended-swiper"
           >
             {recommended.map((product, index) => (
-              <SwiperSlide key={product._id || product.id}>
+              <SwiperSlide key={product._id || product.id} className="!h-auto">
                 <ProductCard product={product} badge={getBadge(product, index)} />
               </SwiperSlide>
             ))}

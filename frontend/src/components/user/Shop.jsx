@@ -354,7 +354,8 @@ const Shop = () => {
             <AnimatePresence mode="popLayout">
               {filteredProducts.slice(0, visibleCount).map((product) => {
                 let badge;
-                if (sortBy === 'New Arrivals') badge = 'new';
+                if (product.comingSoon) badge = 'coming-soon';
+                else if (sortBy === 'New Arrivals') badge = 'new';
                 
                 return (
                   <motion.div key={product._id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.2 }}>

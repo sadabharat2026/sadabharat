@@ -14,8 +14,11 @@ const BestSellers = () => {
   const [swiperInstance, setSwiperInstance] = useState(null);
 
   const bestSellers = [...products]
-    .filter(p => p.bestseller === true || p.category?.toLowerCase() !== 'innerwear')
-    .sort((a, b) => (b.rating * b.reviews) - (a.rating * a.reviews))
+    .sort((a, b) => {
+      const soonDiff = Number(Boolean(a.comingSoon)) - Number(Boolean(b.comingSoon));
+      if (soonDiff !== 0) return soonDiff;
+      return ((b.rating || 0) * (b.reviews || 1)) - ((a.rating || 0) * (a.reviews || 1));
+    })
     .slice(0, 8);
 
   if (loading && products.length === 0) {
@@ -77,7 +80,7 @@ const BestSellers = () => {
             className="bestseller-swiper"
           >
             {bestSellers.map((product) => (
-              <SwiperSlide key={product._id || product.id}>
+              <SwiperSlide key={product._id || product.id} className="!h-auto">
                 <ProductCard product={product} />
               </SwiperSlide>
             ))}

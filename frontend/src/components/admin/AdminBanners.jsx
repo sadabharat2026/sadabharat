@@ -45,7 +45,7 @@ const AdminBanners = () => {
 
       if (res.data.success && res.data.data.length > 0) {
         const uploadedUrl = res.data.data[0];
-        const backendUrl = import.meta.env.VITE_API_BASE_URL ? import.meta.env.VITE_API_BASE_URL.replace('/api', '') : 'http://localhost:5000';
+        const backendUrl = import.meta.env.VITE_API_BASE_URL ? import.meta.env.VITE_API_BASE_URL.replace('/api', '') : 'http://localhost:5200';
         const url = (uploadedUrl.startsWith('http://') || uploadedUrl.startsWith('https://')) 
           ? uploadedUrl 
           : `${backendUrl}${uploadedUrl}`;
