@@ -35,7 +35,7 @@ const makeLimiter = (max, windowMs) =>
 
 const limiters = {
   otp: makeLimiter(
-    envInt('RATE_LIMIT_OTP_MAX', 5),
+    envInt('RATE_LIMIT_OTP_MAX', 30),
     envInt('RATE_LIMIT_OTP_WINDOW_MS', 60_000)
   ),
   auth: makeLimiter(
@@ -136,8 +136,8 @@ const otpMobileHits = new Map();
 const otpMobileLimiter = (req, res, next) => {
   if (!enabled()) return next();
 
-  const max = envInt('OTP_RATE_LIMIT', 5);
-  const windowMs = envInt('OTP_RATE_WINDOW', 600) * 1000;
+  const max = envInt('OTP_RATE_LIMIT', 20);
+  const windowMs = envInt('OTP_RATE_WINDOW', 300) * 1000;
   const mobile = String(req.body?.mobile || '').replace(/\D/g, '');
   if (!mobile) return next();
 
