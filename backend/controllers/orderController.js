@@ -3,7 +3,7 @@ const Coupon = require('../models/couponModel');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const { sendNotificationToUser } = require('../utils/pushNotificationHelper');
-const { processShiprocketOrder } = require('./shipping.controller');
+const { processShippingOrder } = require('./shipping.controller');
 const { computeOrderQuote } = require('../utils/pricing');
 
 const quoteItemsPayload = (items = []) => items.map((item) => ({
@@ -131,8 +131,8 @@ const createOrder = async (req, res) => {
       console.error('FCM: Error sending order creation notifications:', notifErr);
     }
 
-    processShiprocketOrder(createdOrder._id).catch((err) => {
-      console.error('Failed to process Shiprocket flow for COD order:', err.message);
+    processShippingOrder(createdOrder._id).catch((err) => {
+      console.error('Failed to process shipping for COD order:', err.message);
     });
 
     res.status(201).json({
@@ -262,8 +262,8 @@ const verifyRazorpayOrder = async (req, res) => {
       console.error('FCM: Error sending Razorpay order notifications:', notifErr);
     }
 
-    processShiprocketOrder(createdOrder._id).catch((err) => {
-      console.error('Failed to process Shiprocket flow for online order:', err.message);
+    processShippingOrder(createdOrder._id).catch((err) => {
+      console.error('Failed to process shipping for online order:', err.message);
     });
 
     res.status(200).json({

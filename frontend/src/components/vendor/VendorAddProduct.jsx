@@ -15,6 +15,9 @@ const VendorAddProduct = () => {
   const [description, setDescription] = useState(editProduct?.description || '');
   const [ingredients, setIngredients] = useState(editProduct?.ingredients || '');
   const [benefits, setBenefits] = useState(editProduct?.benefits || '');
+  const [packSize, setPackSize] = useState(
+    editProduct?.packSize || editProduct?.variants?.[0]?.size || ''
+  );
 
   // Standard pricing and stock (when no variants are used)
   const [price, setPrice] = useState(editProduct?.price || '');
@@ -42,17 +45,19 @@ const VendorAddProduct = () => {
   }, []);
 
   // Regulatory & Logistics fields
-  const [prescriptionRequired, setPrescriptionRequired] = useState(false);
-  const [noRefund, setNoRefund] = useState(false);
-  const [codAvailable, setCodAvailable] = useState(false);
-  const [dosage, setDosage] = useState('');
-  const [disclaimer, setDisclaimer] = useState('');
+  const [prescriptionRequired, setPrescriptionRequired] = useState(editProduct?.prescriptionRequired || false);
+  const [noRefund, setNoRefund] = useState(editProduct?.noRefund || false);
+  const [codAvailable, setCodAvailable] = useState(editProduct?.codAvailable || false);
+  const [dosage, setDosage] = useState(editProduct?.dosage || '');
+  const [disclaimer, setDisclaimer] = useState(editProduct?.disclaimer || '');
 
   // Variants state
-  const [hasVariants, setHasVariants] = useState(false);
-  const [variants, setVariants] = useState([
-    { size: '100 ml', price: '', oldPrice: '', stock: '', sku: '' }
-  ]);
+  const [hasVariants, setHasVariants] = useState(Boolean(editProduct?.hasVariants && editProduct?.variants?.length));
+  const [variants, setVariants] = useState(
+    editProduct?.variants?.length
+      ? editProduct.variants
+      : [{ size: editProduct?.packSize || '50 ml', price: '', oldPrice: '', stock: '', sku: '' }]
+  );
   const [isUploading, setIsUploading] = useState(false);
 
   const handleFileChange = async (e) => {
@@ -105,7 +110,7 @@ const VendorAddProduct = () => {
 
     if (hasVariants) {
       processedVariants = variants.map(v => ({
-        size: v.size || '100 ml',
+        size: v.size || packSize || '50 ml',
         price: parseFloat(v.price) || 299,
         oldPrice: parseFloat(v.oldPrice) || 399,
         stock: parseInt(v.stock, 10) || 100,
@@ -117,12 +122,16 @@ const VendorAddProduct = () => {
       }
     }
 
+    const resolvedPackSize = hasVariants
+      ? String(processedVariants[0]?.size || packSize || '').trim()
+      : String(packSize || '').trim();
+
     const newProduct = {
       name,
       price: finalPrice,
       oldPrice: finalOldPrice,
-      rating: 0,
-      reviews: 0,
+      rating: editProduct?.rating || 0,
+      reviews: editProduct?.reviews || 0,
       images: gallery,
       image: gallery[0],
       category: category !== 'Select Category' ? category : 'Wellness',
@@ -137,9 +146,9 @@ const VendorAddProduct = () => {
       noRefund,
       codAvailable,
       tags,
-      packSize: hasVariants ? processedVariants[0].size : 'Standard',
-      bestseller: false,
-      recommended: false
+      packSize: resolvedPackSize,
+      bestseller: editProduct?.bestseller || false,
+      recommended: editProduct?.recommended || false
     };
 
     try {
@@ -215,6 +224,19 @@ const VendorAddProduct = () => {
                   placeholder="Write a detailed product description..."
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[12px] focus:outline-none focus:border-[#054425] focus:ring-1 focus:ring-[#054425] font-sans font-medium text-gray-800 resize-none"
                 ></textarea>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-700 mb-1 uppercase tracking-wide">Pack Size / Volume</label>
+                <input
+                  type="text"
+                  value={packSize}
+                  onChange={(e) => setPackSize(e.target.value)}
+                  placeholder="e.g. 50 ml, 100 ml"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[12px] focus:outline-none focus:border-[#054425] focus:ring-1 focus:ring-[#054425] font-sans font-medium text-gray-800"
+                />
+                <p className="text-[9px] text-gray-400 mt-1 font-medium">
+                  Shown on storefront. Change anytime — cards & detail page update automatically.
+                </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>

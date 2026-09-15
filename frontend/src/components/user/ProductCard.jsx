@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { getProductVariants, getCartQty, getCartQtyForProduct } from '../../utils/cart';
 import { getProductImages, toWebpUrl } from '../../utils/productImages';
 import { isComingSoonProduct } from '../../utils/productAccess';
+import { getDisplayPackSize } from '../../utils/productDisplay';
 
 const imageSlideVariants = {
   enter: (direction) => ({
@@ -298,7 +299,7 @@ const ProductCard = ({ product, offerBannerText, badge }) => {
         {/* Variant & Rating Parallel Layout */}
         <div className="flex items-center justify-between mb-2 min-h-[22px]">
           <p className="text-[9px] md:text-[10px] text-gray-400 font-semibold mb-0">
-            {product.packSize || '100 ml'}
+            {getDisplayPackSize(product) || '—'}
           </p>
           <div className="flex items-center gap-0.5 bg-white px-1.5 py-0.5 rounded-sm shadow-sm border border-gray-100">
             <FiStar className="w-2.5 h-2.5 text-[#D4AF37] fill-current" />

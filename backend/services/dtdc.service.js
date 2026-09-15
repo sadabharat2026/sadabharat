@@ -1,11 +1,15 @@
 const { dtdcApi, dtdcTrackApi } = require('../config/dtdc');
 
+const trim = (value) => (value == null ? '' : String(value).trim());
+
 const isDtdcConfigured = () =>
-  Boolean(process.env.DTDC_API_KEY && process.env.DTDC_CUSTOMER_CODE);
+  Boolean(trim(process.env.DTDC_API_KEY) && trim(process.env.DTDC_CUSTOMER_CODE));
 
 const requireConfig = () => {
   if (!isDtdcConfigured()) {
-    throw new Error('DTDC is not configured. Set DTDC_API_KEY and DTDC_CUSTOMER_CODE in backend/.env');
+    throw new Error(
+      'DTDC is not configured. Set DTDC_API_KEY and DTDC_CUSTOMER_CODE in backend/.env'
+    );
   }
 };
 
@@ -26,24 +30,97 @@ const pickAwb = (payload) => {
   const first = rows.find((row) => row && typeof row === 'object') || payload.data || payload;
   return String(
     first?.reference_number ||
-    first?.referenceNumber ||
-    first?.consignment_number ||
-    first?.consignmentNumber ||
-    first?.awb_number ||
-    first?.awbNumber ||
-    first?.awb ||
-    payload.reference_number ||
-    payload.consignment_number ||
-    ''
+      first?.referenceNumber ||
+      first?.consignment_number ||
+      first?.consignmentNumber ||
+      first?.awb_number ||
+      first?.awbNumber ||
+      first?.awb ||
+      payload.reference_number ||
+      payload.consignment_number ||
+      ''
   ).trim();
 };
 
+/**
+ * Build DTDC softdata consignment from Sadabharat order document.
+ */
+const buildConsignmentFromOrder = (order) => {
+  const user = order.user || {};
+  const address = order.shippingAddress || {};
+  const fullName = String(user.name || user.fullName || 'Customer').trim();
+  const phone = String(address.phone || user.mobile || '').replace(/\D/g, '').slice(-10);
+  const pincode = String(address.postalCode || '').replace(/\D/g, '');
+  const isCod = String(order.paymentMethod || '').toUpperCase() === 'COD';
+  const commodity = (order.orderItems || [])
+    .map((item) => item.name)
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(', ') || 'Ayurvedic Products';
+
+  const weightKg = Number(process.env.DTDC_DEFAULT_WEIGHT_KG || 0.5);
+  const pieces = Math.max(
+    1,
+    (order.orderItems || []).reduce((sum, item) => sum + (Number(item.qty) || 1), 0)
+  );
+
+  return {
+    customer_code: trim(process.env.DTDC_CUSTOMER_CODE),
+    reference_number: '',
+    service_type_id: trim(process.env.DTDC_SERVICE_TYPE) || 'B2C PRIORITY',
+    load_type: 'NON-DOCUMENT',
+    description: commodity.slice(0, 100),
+    num_pieces: String(pieces),
+    weight: String(weightKg),
+    weight_unit: 'kg',
+    dimension_unit: 'cm',
+    length: String(process.env.DTDC_DEFAULT_LENGTH || 20),
+    width: String(process.env.DTDC_DEFAULT_WIDTH || 15),
+    height: String(process.env.DTDC_DEFAULT_HEIGHT || 10),
+    declared_value: String(order.totalPrice || order.itemsPrice || 0),
+    cod_amount: isCod ? String(order.totalPrice || 0) : '0',
+    cod_collection_mode: isCod ? 'CASH' : '',
+    commodity_id: trim(process.env.DTDC_COMMODITY_ID) || '99',
+    consignment_type: 'Forward',
+
+    origin_details: {
+      name: trim(process.env.DTDC_ORIGIN_NAME) || 'Sada Bharat Ayurvedic',
+      phone: trim(process.env.DTDC_ORIGIN_PHONE) || '',
+      alternate_phone: '',
+      address_line_1: trim(process.env.DTDC_ORIGIN_ADDRESS) || '',
+      address_line_2: '',
+      pincode: trim(process.env.DTDC_ORIGIN_PINCODE) || '',
+      city: trim(process.env.DTDC_ORIGIN_CITY) || '',
+      state: trim(process.env.DTDC_ORIGIN_STATE) || '',
+    },
+
+    destination_details: {
+      name: fullName,
+      phone,
+      alternate_phone: '',
+      address_line_1: String(address.address || '').slice(0, 200),
+      address_line_2: '',
+      pincode,
+      city: String(address.city || ''),
+      state: String(address.state || ''),
+    },
+
+    customer_reference_number: String(order._id),
+    invoice_number: String(order._id).slice(-8).toUpperCase(),
+    invoice_date: new Date(order.createdAt || Date.now()).toISOString().slice(0, 10),
+  };
+};
+
 class DtdcService {
+  buildConsignmentFromOrder(order) {
+    return buildConsignmentFromOrder(order);
+  }
+
   async createShipment(consignment) {
     requireConfig();
     const paths = [
       '/rest/api/crd/softdata',
-      '/api/customer/integration/consignment/softdata'
+      '/api/customer/integration/consignment/softdata',
     ];
     let lastError;
     for (const path of paths) {
@@ -69,7 +146,7 @@ class DtdcService {
     requireConfig();
     const paths = [
       '/api/custOrder/shippinglabel/stream',
-      '/api/customer/integration/consignment/shippinglabel/stream'
+      '/api/customer/integration/consignment/shippinglabel/stream',
     ];
     let lastError;
     for (const path of paths) {
@@ -78,9 +155,9 @@ class DtdcService {
           params: {
             reference_number: awbCode,
             label_code: process.env.DTDC_LABEL_CODE || 'SHIP_LABEL_4X6',
-            label_format: 'pdf'
+            label_format: 'pdf',
           },
-          responseType: 'arraybuffer'
+          responseType: 'arraybuffer',
         });
         return response.data;
       } catch (error) {
@@ -97,8 +174,8 @@ class DtdcService {
         params: {
           TrkType: 'cnno',
           strcnno: awbCode,
-          addtnlDtl: 'Y'
-        }
+          addtnlDtl: 'Y',
+        },
       });
       return response.data;
     } catch (error) {
@@ -111,7 +188,7 @@ class DtdcService {
     try {
       const response = await dtdcApi.post('/api/customer/integration/consignment/cancel', {
         reference_number: awbCode,
-        cancellation_reason: reason
+        cancellation_reason: reason,
       });
       return response.data;
     } catch (error) {
@@ -122,3 +199,4 @@ class DtdcService {
 
 module.exports = new DtdcService();
 module.exports.isDtdcConfigured = isDtdcConfigured;
+module.exports.buildConsignmentFromOrder = buildConsignmentFromOrder;

@@ -70,7 +70,12 @@ const classify = (req) => {
   const path = String(req.originalUrl || req.path || '').split('?')[0].replace(/\/+$/, '') || '/';
   const method = req.method.toUpperCase();
 
-  if (method === 'POST' && exact(path, '/api/shipping/webhook')) return 'skip';
+  if (
+    method === 'POST' &&
+    (exact(path, '/api/shipping/webhook') || exact(path, '/api/shipping/webhook/dtdc'))
+  ) {
+    return 'skip';
+  }
   if (method === 'GET' && (path === '/' || path === '')) return 'skip';
 
   if (

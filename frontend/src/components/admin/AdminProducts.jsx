@@ -59,13 +59,14 @@ const AdminProducts = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  const [form, setForm] = useState({
+  const emptyForm = {
     name: '',
     description: '',
     ingredients: '',
     benefits: '',
     dosage: '',
     disclaimer: '',
+    packSize: '',
     hasVariants: false,
     variants: [{ size: '', price: '', oldPrice: '', stock: '', sku: '' }],
     price: '',
@@ -78,7 +79,9 @@ const AdminProducts = () => {
     codAvailable: false,
     category: '',
     tags: ''
-  });
+  };
+
+  const [form, setForm] = useState({ ...emptyForm });
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -192,12 +195,14 @@ const AdminProducts = () => {
   const handleEdit = (product) => {
     setEditingProduct(product);
     setForm({
+      ...emptyForm,
       name: product.name || '',
       description: product.description || '',
       ingredients: product.ingredients || '',
       benefits: product.benefits || '',
       dosage: product.dosage || '',
       disclaimer: product.disclaimer || '',
+      packSize: product.packSize || product.variants?.[0]?.size || '',
       hasVariants: product.hasVariants || false,
       variants: product.variants?.length ? product.variants : [{ size: '', price: '', oldPrice: '', stock: '', sku: '' }],
       price: product.price || '',
@@ -230,11 +235,16 @@ const AdminProducts = () => {
         return;
       }
 
+      const packSize = form.hasVariants
+        ? String(form.variants[0]?.size || form.packSize || '').trim()
+        : String(form.packSize || '').trim();
+
       const payload = {
         ...form,
         images,
         image: images[0],
         status: 'approved',
+        packSize,
         price: form.hasVariants ? Number(form.variants[0]?.price || 0) : Number(form.price || 0),
         oldPrice: form.hasVariants ? Number(form.variants[0]?.oldPrice || 0) : Number(form.oldPrice || 0),
         stock: form.hasVariants ? Number(form.variants[0]?.stock || 0) : Number(form.stock || 0),
@@ -248,12 +258,7 @@ const AdminProducts = () => {
 
       setIsAdding(false);
       setEditingProduct(null);
-      setForm({
-        name: '', description: '', ingredients: '', benefits: '', dosage: '', disclaimer: '',
-        hasVariants: false, variants: [{ size: '', price: '', oldPrice: '', stock: '', sku: '' }],
-        price: '', oldPrice: '', stock: '', sku: '', images: [], prescriptionRequired: false,
-        noRefund: false, codAvailable: false, category: '', tags: ''
-      });
+      setForm({ ...emptyForm });
       fetchAdminProducts();
       if (typeof fetchData === 'function') fetchData();
     } catch (err) {
@@ -295,12 +300,7 @@ const AdminProducts = () => {
               <button
                 onClick={() => {
                   setEditingProduct(null);
-                  setForm({
-                    name: '', description: '', ingredients: '', benefits: '', dosage: '', disclaimer: '',
-                    hasVariants: false, variants: [{ size: '', price: '', oldPrice: '', stock: '', sku: '' }],
-                    price: '', oldPrice: '', stock: '', sku: '', images: [], prescriptionRequired: false,
-                    noRefund: false, codAvailable: false, category: '', tags: ''
-                  });
+                  setForm({ ...emptyForm });
                   setIsAdding(true);
                 }}
                 className="bg-admin-dark text-white px-6 py-2.5 rounded-lg text-xs font-bold flex items-center gap-2 shadow-lg shadow-black/10 hover:bg-black transition-all"
@@ -532,6 +532,20 @@ const AdminProducts = () => {
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[12px] focus:outline-none focus:border-[#054425] focus:ring-1 focus:ring-[#054425] font-sans font-medium text-gray-800 resize-none"
                 ></textarea>
               </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-700 mb-1 uppercase tracking-wide">Pack Size / Volume</label>
+                <input
+                  type="text"
+                  name="packSize"
+                  value={form.packSize}
+                  onChange={handleInputChange}
+                  placeholder="e.g. 50 ml, 100 ml, 60 Capsules"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[12px] focus:outline-none focus:border-[#054425] focus:ring-1 focus:ring-[#054425] font-sans font-medium text-gray-800"
+                />
+                <p className="text-[9px] text-gray-400 mt-1 font-medium">
+                  Shown on product cards & detail page. With variants, first variant size is used automatically.
+                </p>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] font-bold text-gray-700 mb-1 uppercase tracking-wide">Key Ingredients (comma separated)</label>
@@ -755,6 +769,15 @@ const AdminProducts = () => {
                     name="stock" value={form.stock} onChange={handleInputChange}
                     
                     placeholder="100"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[12px] focus:outline-none focus:border-[#054425] focus:ring-1 focus:ring-[#054425] font-sans font-medium text-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-700 mb-1 uppercase tracking-wide">Pack Size</label>
+                  <input
+                    type="text"
+                    name="packSize" value={form.packSize} onChange={handleInputChange}
+                    placeholder="50 ml"
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[12px] focus:outline-none focus:border-[#054425] focus:ring-1 focus:ring-[#054425] font-sans font-medium text-gray-800"
                   />
                 </div>

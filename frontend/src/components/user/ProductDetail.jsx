@@ -14,6 +14,7 @@ import { getConversationId } from '../../services/chatService';
 import { getProductVariants, getCartQty, resolveSelectedSize } from '../../utils/cart';
 import { getProductImages, toWebpUrl } from '../../utils/productImages';
 import { isComingSoonProduct } from '../../utils/productAccess';
+import { formatProductDescription, getDisplayPackSize } from '../../utils/productDisplay';
 
 import ConsultationCTA from './ConsultationCTA';
 import ProductCard from './ProductCard';
@@ -482,7 +483,7 @@ const ProductDetail = () => {
                 <div className="p-5 border-b md:border-b-0 md:border-r border-gray-100">
                   <h3 className="text-[13px] font-bold text-gray-900 mb-3">About this product</h3>
                   <p className="text-[11px] text-gray-600 mb-4 leading-relaxed">
-                    {product.description || `Sada Bharat ${product.name} is a blend of pure ingredients & herbs that nourishes the body.`}
+                    {formatProductDescription(product, currentSize)}
                   </p>
                   <ul className="space-y-2.5">
                     {(Array.isArray(product.about) && product.about.length > 0 ? product.about : [
@@ -572,7 +573,11 @@ const ProductDetail = () => {
             <div className="order-2 space-y-2 lg:pl-0 lg:pt-2">
               <div>
                 <h1 className="text-2xl md:text-[24px] font-serif font-bold text-[#054425] mb-1 leading-tight tracking-tight">{product.name}</h1>
-                <p className="text-[12px] text-gray-600 mb-2 font-medium">{product.subtitle || 'Nourishes roots & promotes healthy growth'}</p>
+                <p className="text-[12px] text-gray-600 mb-2 font-medium">
+                  {getDisplayPackSize(product, currentSize)
+                    ? `${getDisplayPackSize(product, currentSize)} · ${product.subtitle || 'For strong, healthy & beautiful hair'}`
+                    : (product.subtitle || 'Nourishes roots & promotes healthy growth')}
+                </p>
                 <div className="flex items-center gap-3 text-[11px] mb-3">
                   <div className="flex items-center text-[#F59E0B]">
                     <FiStar className="fill-current w-3.5 h-3.5" />
