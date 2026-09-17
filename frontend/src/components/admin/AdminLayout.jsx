@@ -53,6 +53,7 @@ const AdminLayout = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingVendorCount, setPendingVendorCount] = useState(0);
 
   const fetchAdminNotifications = async () => {
     try {
@@ -67,13 +68,39 @@ const AdminLayout = () => {
     }
   };
 
+  const fetchPendingVendorCount = async () => {
+    try {
+      const { default: api } = await import('../../utils/api');
+      const res = await api.get('/vendors/pending');
+      if (res.data?.success) {
+        const count = Array.isArray(res.data.data) ? res.data.data.length : 0;
+        setPendingVendorCount(count);
+        if (count > 0) {
+          setOpenMenus((prev) => ({ ...prev, Vendors: true }));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch pending vendors', err);
+    }
+  };
+
   React.useEffect(() => {
     if (isAuthenticated) {
       fetchAdminNotifications();
-      const intervalId = setInterval(fetchAdminNotifications, 60000); // poll every minute
+      fetchPendingVendorCount();
+      const intervalId = setInterval(() => {
+        fetchAdminNotifications();
+        fetchPendingVendorCount();
+      }, 30000);
       return () => clearInterval(intervalId);
     }
   }, [isAuthenticated]);
+
+  React.useEffect(() => {
+    if (location.pathname.startsWith('/admin/vendors')) {
+      fetchPendingVendorCount();
+    }
+  }, [location.pathname]);
 
   const handleMarkAllReadHeader = async () => {
     try {
@@ -208,14 +235,27 @@ const AdminLayout = () => {
                     className={`w-full flex items-center px-4 py-2.5 rounded-lg transition-all duration-200 text-white/70 hover:bg-white/5 hover:text-white ${!isSidebarOpen ? 'justify-center px-0' : 'justify-between'}`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`shrink-0 transition-all duration-300 ${location.pathname.startsWith(item.subItems[0].path) ? 'text-white' : ''}`}>
+                      <div className={`relative shrink-0 transition-all duration-300 ${
+                        (item.title === 'Vendors' && location.pathname.startsWith('/admin/vendors'))
+                        || (item.title === 'Customers' && location.pathname.startsWith('/admin/customers'))
+                        || (item.title !== 'Vendors' && item.title !== 'Customers' && item.subItems.some((s) => location.pathname === s.path))
+                          ? 'text-white' : ''
+                      }`}>
                         {React.cloneElement(item.icon, { size: 18 })}
+                        {item.title === 'Vendors' && pendingVendorCount > 0 && !isSidebarOpen && (
+                          <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-admin-dark" />
+                        )}
                       </div>
                       <span className={`text-[13px] font-medium font-poppins transition-all duration-300 whitespace-nowrap overflow-hidden ${
                         isSidebarOpen ? 'opacity-100 max-w-full block' : 'opacity-0 max-w-0 hidden'
                       }`}>
                         {item.title}
                       </span>
+                      {item.title === 'Vendors' && pendingVendorCount > 0 && isSidebarOpen && (
+                        <span className="ml-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                          {pendingVendorCount > 9 ? '9+' : pendingVendorCount}
+                        </span>
+                      )}
                     </div>
                     {isSidebarOpen && (
                       <FiChevronDown size={14} className={`transition-transform duration-300 ${openMenus[item.title] ? 'rotate-180 text-white' : ''}`} />
@@ -235,13 +275,18 @@ const AdminLayout = () => {
                             <Link
                               key={sub.title}
                               to={sub.path}
-                              className={`block px-4 py-1.5 text-[11px] font-medium font-poppins rounded-lg transition-all duration-200 relative ${
+                              className={`flex items-center justify-between gap-2 px-4 py-1.5 text-[11px] font-medium font-poppins rounded-lg transition-all duration-200 relative ${
                                 location.pathname === sub.path
                                   ? 'text-white bg-white/5 before:absolute before:left-[-1px] before:top-1/2 before:-translate-y-1/2 before:w-[3px] before:h-[3px] before:rounded-full before:bg-admin-gold'
                                   : 'text-white/50 hover:text-white/90 hover:bg-white/5'
                               }`}
                             >
-                              {sub.title}
+                              <span>{sub.title}</span>
+                              {sub.path === '/admin/vendors/pending' && pendingVendorCount > 0 && (
+                                <span className="min-w-[16px] h-4 px-1 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center shrink-0">
+                                  {pendingVendorCount > 9 ? '9+' : pendingVendorCount}
+                                </span>
+                              )}
                             </Link>
                           ))}
                         </div>
@@ -253,14 +298,17 @@ const AdminLayout = () => {
                 <Link
                   to={item.path}
                   title={!isSidebarOpen ? item.title : ''}
-                  className={`flex items-center px-4 py-2.5 rounded-lg transition-all duration-200 ${location.pathname === item.path
+                  className={`flex items-center px-4 py-2.5 rounded-lg transition-all duration-200 relative ${location.pathname === item.path
                     ? 'bg-white/10 text-white font-medium shadow-[0_4px_12px_rgba(0,0,0,0.1)] backdrop-blur-sm'
                     : 'text-white/70 hover:bg-white/5 hover:text-white'
                     } ${!isSidebarOpen ? 'justify-center px-0' : 'justify-between'}`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`shrink-0 transition-all duration-300 ${location.pathname === item.path ? 'text-white' : ''}`}>
+                    <div className={`relative shrink-0 transition-all duration-300 ${location.pathname === item.path ? 'text-white' : ''}`}>
                       {React.cloneElement(item.icon, { size: 18 })}
+                      {item.title === 'Notifications' && unreadCount > 0 && !isSidebarOpen && (
+                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-admin-dark" />
+                      )}
                     </div>
 
                     <span className={`text-[13px] font-medium font-poppins transition-all duration-300 whitespace-nowrap overflow-hidden ${
@@ -268,6 +316,11 @@ const AdminLayout = () => {
                     }`}>
                       {item.title}
                     </span>
+                    {item.title === 'Notifications' && unreadCount > 0 && isSidebarOpen && (
+                      <span className="min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
                   </div>
 
                   {location.pathname === item.path && (
@@ -366,15 +419,40 @@ const AdminLayout = () => {
                         <div className="p-4 text-center text-sm text-gray-500">No new notifications</div>
                       ) : (
                         notifications.map(notification => (
-                          <div key={notification._id || notification.id} className={`p-4 border-b border-gray-50 hover:bg-gray-50 flex items-start gap-3 transition-colors ${!notification.isRead ? 'bg-[#FAF7F8]' : ''}`}>
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                              <FiMessageSquare className="text-blue-600" size={14} />
+                          <button
+                            type="button"
+                            key={notification._id || notification.id}
+                            onClick={() => {
+                              setIsNotificationsOpen(false);
+                              if (notification.relatedModel === 'Vendor' || /vendor|joining/i.test(`${notification.title} ${notification.message}`)) {
+                                navigate('/admin/vendors/pending');
+                              } else {
+                                navigate('/admin/notifications');
+                              }
+                            }}
+                            className={`w-full text-left p-4 border-b border-gray-50 hover:bg-gray-50 flex items-start gap-3 transition-colors ${!notification.isRead ? 'bg-[#FAF7F8]' : ''}`}
+                          >
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                              notification.relatedModel === 'Vendor' || /vendor|joining/i.test(notification.title || '')
+                                ? 'bg-red-100'
+                                : 'bg-blue-100'
+                            }`}>
+                              {notification.relatedModel === 'Vendor' || /vendor|joining/i.test(notification.title || '') ? (
+                                <FiUsers className="text-red-600" size={14} />
+                              ) : (
+                                <FiMessageSquare className="text-blue-600" size={14} />
+                              )}
                             </div>
                             <div className="flex-1">
-                              <p className="text-sm text-gray-900 font-semibold">{notification.title || 'Notification'}</p>
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-sm text-gray-900 font-semibold">{notification.title || 'Notification'}</p>
+                                {!notification.isRead && (
+                                  <span className="mt-1 w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                                )}
+                              </div>
                               <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notification.message}</p>
                             </div>
-                          </div>
+                          </button>
                         ))
                       )}
                     </div>

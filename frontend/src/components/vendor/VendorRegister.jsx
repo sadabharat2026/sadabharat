@@ -23,8 +23,7 @@ const VendorRegister = () => {
     fullName: '',
     email: '',
     mobile: '',
-    password: '',
-    confirmPassword: '',
+    otp: '',
     businessName: '',
     gstNumber: '',
     businessType: '',
@@ -44,8 +43,14 @@ const VendorRegister = () => {
   });
 
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const [availableCategories, setAvailableCategories] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [otpSent, setOtpSent] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [otpTimer, setOtpTimer] = useState(0);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -59,36 +64,100 @@ const VendorRegister = () => {
     fetchCategories();
   }, []);
 
+  useEffect(() => {
+    if (otpTimer <= 0) return undefined;
+    const id = setInterval(() => setOtpTimer((t) => t - 1), 1000);
+    return () => clearInterval(id);
+  }, [otpTimer]);
+
+  const handleSendRegisterOtp = async () => {
+    setError('');
+    setInfo('');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid email address before requesting OTP.');
+      return;
+    }
+    if (!formData.fullName.trim() || formData.fullName.trim().length < 3) {
+      setError('Enter your full name before requesting OTP.');
+      return;
+    }
+
+    setSendingOtp(true);
+    try {
+      const res = await api.post('/vendors/send-register-otp', {
+        email: formData.email,
+        name: formData.fullName,
+      });
+      if (res.data.success) {
+        setOtpSent(true);
+        setEmailVerified(false);
+        setOtpTimer(60);
+        if (res.data.devOtp) {
+          setFormData((prev) => ({ ...prev, otp: res.data.devOtp }));
+          setInfo(`OTP sent! (Dev: ${res.data.devOtp})`);
+        } else {
+          setInfo('OTP sent to your email. Please check your inbox.');
+        }
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to send OTP email.');
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleVerifyRegisterOtp = async () => {
+    setError('');
+    setInfo('');
+    if (!formData.otp || formData.otp.length !== 6) {
+      setError('Enter the 6-digit OTP from your email.');
+      return;
+    }
+    setVerifyingOtp(true);
+    try {
+      const res = await api.post('/vendors/verify-register-otp', {
+        email: formData.email,
+        otp: formData.otp,
+      });
+      if (res.data.success) {
+        setEmailVerified(true);
+        setInfo('Email verified successfully.');
+      }
+    } catch (err) {
+      setEmailVerified(false);
+      setError(err.response?.data?.message || 'Invalid or expired OTP.');
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
   // Poll for admin approval automatically when submitted
   useEffect(() => {
     let intervalId;
-    if (submitted && formData.email && formData.password) {
+    if (submitted && formData.email) {
       intervalId = setInterval(async () => {
         try {
-          const res = await api.post('/vendors/login', {
+          const res = await api.post('/vendors/registration-status', {
             email: formData.email,
-            password: formData.password
           });
-          
-          if (res.data.success) {
+          if (res.data.success && res.data.data?.isApproved) {
             clearInterval(intervalId);
-            localStorage.setItem('vendor_token', res.data.data.token);
-            localStorage.setItem('vendor_auth', 'true');
             if (window.showVendorToast) {
-              window.showVendorToast('Approved! Logged in successfully.', 'success');
+              window.showVendorToast('Approved! Please sign in with email OTP.', 'success');
             }
-            navigate('/vendor');
+            navigate('/vendor/login', { state: { email: formData.email } });
           }
         } catch (err) {
-          // Ignore 403 or 401 errors, it just means they are not approved yet
+          // ignore until approved
         }
-      }, 5000); // Check every 5 seconds
+      }, 5000);
     }
 
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [submitted, formData.email, formData.password, navigate]);
+  }, [submitted, formData.email, navigate]);
 
   const nextStep = () => {
     if (currentStep < steps.length) {
@@ -123,12 +192,8 @@ const VendorRegister = () => {
         setError('Mobile number must be exactly 10 digits.');
         return false;
       }
-      if (formData.password.length < 6) {
-        setError('Password must be at least 6 characters long.');
-        return false;
-      }
-      if (formData.password !== formData.confirmPassword) {
-        setError('Passwords do not match.');
+      if (!emailVerified || !formData.otp || formData.otp.length !== 6) {
+        setError('Please verify your email with the OTP sent to your inbox.');
         return false;
       }
     }
@@ -476,15 +541,62 @@ const VendorRegister = () => {
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Email Address *</label>
-                          <input 
-                            type="email" 
-                            placeholder="e.g. seller@sadabharat.com" 
-                            required 
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
-                          />
+                          <div className="flex gap-2">
+                            <input 
+                              type="email" 
+                              placeholder="e.g. seller@sadabharat.com" 
+                              required 
+                              value={formData.email}
+                              onChange={(e) => {
+                                setEmailVerified(false);
+                                setOtpSent(false);
+                                setFormData({ ...formData, email: e.target.value, otp: '' });
+                              }}
+                              className="flex-1 bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
+                            />
+                            <button
+                              type="button"
+                              onClick={handleSendRegisterOtp}
+                              disabled={sendingOtp || otpTimer > 0}
+                              className="shrink-0 px-3 py-2.5 rounded-xl text-[10px] font-bold bg-[#054425] text-white disabled:bg-gray-400 whitespace-nowrap"
+                            >
+                              {sendingOtp ? 'Sending...' : otpTimer > 0 ? `${otpTimer}s` : otpSent ? 'Resend OTP' : 'Send OTP'}
+                            </button>
+                          </div>
+                          <p className="text-[9px] text-gray-400 mt-1 font-medium">We will email a 6-digit OTP to verify this address.</p>
                         </div>
+                        {(otpSent || formData.otp) && (
+                          <div>
+                            <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Email OTP *</label>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={6}
+                                placeholder="6-digit OTP from email"
+                                value={formData.otp}
+                                onChange={(e) => {
+                                  setEmailVerified(false);
+                                  setFormData({ ...formData, otp: e.target.value.replace(/\D/g, '').slice(0, 6) });
+                                }}
+                                className="flex-1 bg-white border border-gray-250 focus:border-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none tracking-widest"
+                              />
+                              <button
+                                type="button"
+                                onClick={handleVerifyRegisterOtp}
+                                disabled={verifyingOtp || emailVerified}
+                                className={`shrink-0 px-3 py-2.5 rounded-xl text-[10px] font-bold whitespace-nowrap ${emailVerified ? 'bg-emerald-600 text-white' : 'bg-white border border-[#054425] text-[#054425] disabled:opacity-50'}`}
+                              >
+                                {emailVerified ? 'Verified' : verifyingOtp ? 'Checking...' : 'Verify'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        {info && (
+                          <div className="p-2 bg-amber-50 text-amber-800 rounded-xl text-[10px] font-semibold border border-amber-100">
+                            {info}
+                          </div>
+                        )}
                         <div>
                           <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Mobile Number *</label>
                           <input 
@@ -495,30 +607,6 @@ const VendorRegister = () => {
                             onChange={(e) => setFormData({ ...formData, mobile: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                             className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
                           />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Password *</label>
-                            <input 
-                              type="password" 
-                              placeholder="••••••" 
-                              required 
-                              value={formData.password}
-                              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                              className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Confirm *</label>
-                            <input 
-                              type="password" 
-                              placeholder="••••••" 
-                              required 
-                              value={formData.confirmPassword}
-                              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                              className="w-full bg-white border border-gray-250 focus:border-[#054425] focus:ring-[#054425] px-4 py-2.5 rounded-xl text-xs font-semibold outline-none transition-all text-gray-805 placeholder:text-gray-400" 
-                            />
-                          </div>
                         </div>
                       </div>
                     )}

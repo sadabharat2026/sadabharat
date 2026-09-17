@@ -80,7 +80,11 @@ const classify = (req) => {
 
   if (
     method === 'POST' &&
-    (exact(path, '/api/users/send-otp') || exact(path, '/api/users/send-register-otp'))
+    (exact(path, '/api/users/send-otp') ||
+      exact(path, '/api/users/send-register-otp') ||
+      exact(path, '/api/vendors/send-register-otp') ||
+      exact(path, '/api/vendors/send-login-otp') ||
+      exact(path, '/api/vendors/forgot-password'))
   ) {
     return 'otp';
   }
@@ -92,7 +96,11 @@ const classify = (req) => {
       exact(path, '/api/users/register') ||
       exact(path, '/api/users/verify-otp') ||
       exact(path, '/api/vendors/login') ||
-      exact(path, '/api/vendors/register'))
+      exact(path, '/api/vendors/register') ||
+      exact(path, '/api/vendors/verify-register-otp') ||
+      exact(path, '/api/vendors/verify-login-otp') ||
+      exact(path, '/api/vendors/registration-status') ||
+      exact(path, '/api/vendors/reset-password'))
   ) {
     return 'auth';
   }

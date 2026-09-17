@@ -2,6 +2,13 @@ const express = require('express');
 const {
   registerVendor,
   loginVendor,
+  sendVendorRegisterOtp,
+  verifyVendorRegisterOtp,
+  sendVendorLoginOtp,
+  verifyVendorLoginOtp,
+  getVendorRegistrationStatus,
+  forgotVendorPassword,
+  resetVendorPassword,
   getPendingVendors,
   getApprovedVendors,
   getBlockedVendors,
@@ -20,6 +27,13 @@ const router = express.Router();
 
 router.post('/register', registerVendor);
 router.post('/login', loginVendor);
+router.post('/send-register-otp', sendVendorRegisterOtp);
+router.post('/verify-register-otp', verifyVendorRegisterOtp);
+router.post('/send-login-otp', sendVendorLoginOtp);
+router.post('/verify-login-otp', verifyVendorLoginOtp);
+router.post('/registration-status', getVendorRegistrationStatus);
+router.post('/forgot-password', forgotVendorPassword);
+router.post('/reset-password', resetVendorPassword);
 
 // Vendor specific routes
 router.get('/profile', protect, authorize('vendor'), getVendorProfile);

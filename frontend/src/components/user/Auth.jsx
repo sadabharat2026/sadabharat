@@ -46,7 +46,7 @@ const Auth = () => {
 
   const showNotification = (msg, type = 'success') => {
     setNotification({ msg, type });
-    setTimeout(() => setNotification(null), 3500);
+    setTimeout(() => setNotification(null), type === 'info' ? 4500 : 3500);
   };
 
   const handleInputChange = (e) => {
@@ -85,7 +85,27 @@ const Auth = () => {
         }
       }
     } catch (error) {
-      showNotification(error.response?.data?.message || "Failed to send OTP", "error");
+      const data = error.response?.data || {};
+      const isUnregistered =
+        data.code === 'USER_NOT_REGISTERED' ||
+        error.response?.status === 404 ||
+        /not found|register/i.test(String(data.message || ''));
+
+      if (isUnregistered) {
+        showNotification(
+          data.message || 'User not found. Please go and first register yourself.',
+          'info'
+        );
+        setTimeout(() => {
+          navigate('/register', {
+            replace: true,
+            state: { mobile: form.mobile, from: location.state?.from },
+          });
+        }, 1800);
+        return;
+      }
+
+      showNotification(data.message || 'Failed to send OTP', 'error');
     }
   };
 
@@ -383,9 +403,12 @@ const Auth = () => {
 
             {/* Social logins removed */}
 
-            <div className="mt-8 text-center">
+            <div className="mt-8 text-center space-y-2">
               <p className="text-sm font-medium text-gray-600">
                 Don't have an account? <Link to="/register" className="text-[#054425] font-bold hover:underline">Sign Up</Link>
+              </p>
+              <p className="text-[11px] text-gray-500 font-medium">
+                Sell Ayurvedic products with us — <Link to="/vendor/login" className="text-[#054425] font-bold hover:underline">Seller Login</Link>
               </p>
             </div>
           </div>
@@ -399,13 +422,33 @@ const Auth = () => {
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed bottom-10 left-[5%] right-[5%] md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-auto md:min-w-[300px] z-[1001] bg-white border-l-4 border-[#054425] shadow-xl px-6 py-4 flex items-center gap-4 rounded-r-lg md:rounded-l-lg"
+            className={`fixed bottom-10 left-[5%] right-[5%] md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-auto md:min-w-[300px] z-[1001] bg-white border-l-4 shadow-xl px-6 py-4 flex items-center gap-4 rounded-r-lg md:rounded-l-lg ${
+              notification.type === 'error'
+                ? 'border-red-500'
+                : notification.type === 'info'
+                  ? 'border-amber-500'
+                  : 'border-[#054425]'
+            }`}
           >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${notification.type === 'error' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-[#054425]'}`}>
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                notification.type === 'error'
+                  ? 'bg-red-50 text-red-500'
+                  : notification.type === 'info'
+                    ? 'bg-amber-50 text-amber-600'
+                    : 'bg-green-50 text-[#054425]'
+              }`}
+            >
               {notification.type === 'error' ? '!' : <FiCheckCircle size={18} />}
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-800">{notification.type === 'error' ? 'Error' : 'Success'}</p>
+              <p className="text-sm font-bold text-gray-800">
+                {notification.type === 'error'
+                  ? 'Error'
+                  : notification.type === 'info'
+                    ? 'Please Register'
+                    : 'Success'}
+              </p>
               <p className="text-xs font-medium text-gray-500">{notification.msg}</p>
             </div>
           </motion.div>

@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { FiUser, FiMail, FiPhone, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useShop } from '../../context/ShopContext';
 import registerBg from '../../assets/images/register_herbs.jpg';
 import api from '../../utils/api';
 
 const Register = () => {
+  const location = useLocation();
   const [form, setForm] = useState({
     name: '',
     gender: '',
     email: '',
-    mobile: '',
+    mobile: location.state?.mobile || '',
     otp: '',
     agreed: false
   });
@@ -27,6 +28,12 @@ const Register = () => {
     setNotification({ msg, type });
     setTimeout(() => setNotification(null), 3500);
   };
+
+  useEffect(() => {
+    if (location.state?.mobile) {
+      showNotification('User not found. Please go and first register yourself.', 'info');
+    }
+  }, []);
 
   useEffect(() => {
     let interval;
@@ -383,9 +390,12 @@ const Register = () => {
             </form>
 
             {/* Footer Text */}
-            <div className="mt-4 pb-4 text-center">
+            <div className="mt-4 pb-4 text-center space-y-2">
               <p className="text-xs text-gray-600 font-medium">
                 Already have an account? <Link to="/login" className="text-[#054425] font-bold hover:underline">Sign In</Link>
+              </p>
+              <p className="text-[11px] text-gray-500 font-medium">
+                Already a seller? <Link to="/vendor/login" className="text-[#054425] font-bold hover:underline">Seller Login</Link>
               </p>
             </div>
           </div>
@@ -399,12 +409,20 @@ const Register = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 50, scale: 0.9 }}
             className={`fixed bottom-6 left-[5%] right-[5%] md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-auto px-6 py-3 rounded-full text-sm font-bold shadow-lg z-[1000] flex items-center justify-center gap-2 ${
-              notification.type === 'error' ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-[#0F3520] text-[#F4F1E1]'
+              notification.type === 'error'
+                ? 'bg-red-50 text-red-600 border border-red-200'
+                : notification.type === 'info'
+                  ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                  : 'bg-[#0F3520] text-[#F4F1E1]'
             }`}
           >
             {notification.type === 'error' ? (
               <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            ) : notification.type === 'info' ? (
+              <svg className="w-5 h-5 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             ) : (
               <svg className="w-5 h-5 text-brand-gold shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

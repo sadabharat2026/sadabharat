@@ -241,8 +241,11 @@ const sendOtp = async (req, res, next) => {
           await user.save();
         }
       } else {
-        res.status(404);
-        throw new Error('User not found. Please register first.');
+        return res.status(404).json({
+          success: false,
+          code: 'USER_NOT_REGISTERED',
+          message: 'User not found. Please go and first register yourself.',
+        });
       }
     }
 

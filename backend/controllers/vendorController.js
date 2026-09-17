@@ -1,7 +1,9 @@
 const Vendor = require('../models/vendorModel');
+const EmailOtp = require('../models/emailOtpModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { sendNotificationToUser } = require('../utils/pushNotificationHelper');
+const { sendOtpEmail } = require('../services/emailService');
 
 const generateToken = (id) => {
   return jwt.sign({ id, role: 'vendor' }, process.env.JWT_ACCESS_SECRET || 'secret123', {
@@ -9,12 +11,227 @@ const generateToken = (id) => {
   });
 };
 
+const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
+
+const createAndSendEmailOtp = async ({ email, purpose, name }) => {
+  const otp =
+    process.env.USE_DEFAULT_OTP === 'true'
+      ? '989898'
+      : Math.floor(100000 + Math.random() * 900000).toString();
+  const expiryMinutes = Number(process.env.OTP_EXPIRY_MINUTES) || 10;
+  const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
+
+  await EmailOtp.deleteMany({ email, purpose });
+  await EmailOtp.create({ email, otp, purpose, expiresAt, verified: false });
+
+  const mailResult = await sendOtpEmail({ to: email, otp, purpose, name });
+  return { mailResult, otp, expiresAt };
+};
+
+const consumeVerifiedOtp = async ({ email, otp, purpose }) => {
+  const record = await EmailOtp.findOne({ email, purpose }).sort({ createdAt: -1 });
+  if (!record || record.otp !== String(otp).trim() || record.expiresAt < new Date()) {
+    return { ok: false, message: 'Invalid or expired OTP' };
+  }
+  record.verified = true;
+  await record.save();
+  return { ok: true, record };
+};
+
+// @desc    Send OTP to vendor email (registration)
+// @route   POST /api/vendors/send-register-otp
+// @access  Public
+const sendVendorRegisterOtp = async (req, res, next) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    const name = String(req.body.name || '').trim();
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      res.status(400);
+      throw new Error('Please provide a valid email address');
+    }
+
+    const exists = await Vendor.findOne({ email });
+    if (exists) {
+      res.status(400);
+      throw new Error('A vendor with this email already exists. Please sign in instead.');
+    }
+
+    const { mailResult, otp } = await createAndSendEmailOtp({
+      email,
+      purpose: 'vendor_register',
+      name,
+    });
+
+    if (!mailResult.success) {
+      res.status(502);
+      throw new Error(`Failed to send OTP email. Please try again. (${mailResult.message})`);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP sent to your email address',
+      ...(mailResult.devOtp && { devOtp: otp, devNote: 'OTP visible when SMTP mock / default OTP is enabled' }),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Verify registration OTP
+// @route   POST /api/vendors/verify-register-otp
+// @access  Public
+const verifyVendorRegisterOtp = async (req, res, next) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    const otp = String(req.body.otp || '').trim();
+
+    if (!email || !otp) {
+      res.status(400);
+      throw new Error('Email and OTP are required');
+    }
+
+    const result = await consumeVerifiedOtp({ email, otp, purpose: 'vendor_register' });
+    if (!result.ok) {
+      res.status(401);
+      throw new Error(result.message);
+    }
+
+    res.status(200).json({ success: true, message: 'Email verified successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Send forgot-password OTP
+// @route   POST /api/vendors/forgot-password
+// @access  Public
+const forgotVendorPassword = async (req, res, next) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    if (!email) {
+      res.status(400);
+      throw new Error('Please provide your registered email');
+    }
+
+    const vendor = await Vendor.findOne({ email });
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        code: 'VENDOR_NOT_FOUND',
+        message: 'No seller account found with this email. Please register first.',
+      });
+    }
+
+    if (vendor.isBlocked) {
+      res.status(403);
+      throw new Error('Your account has been blocked by the admin.');
+    }
+
+    const { mailResult, otp } = await createAndSendEmailOtp({
+      email,
+      purpose: 'vendor_reset',
+      name: vendor.fullName,
+    });
+
+    if (!mailResult.success) {
+      res.status(502);
+      throw new Error(`Failed to send OTP email. Please try again. (${mailResult.message})`);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Password reset OTP sent to your email',
+      ...(mailResult.devOtp && { devOtp: otp, devNote: 'OTP visible when SMTP mock / default OTP is enabled' }),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Reset vendor password with email OTP
+// @route   POST /api/vendors/reset-password
+// @access  Public
+const resetVendorPassword = async (req, res, next) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    const otp = String(req.body.otp || '').trim();
+    const { password, confirmPassword } = req.body;
+
+    if (!email || !otp || !password) {
+      res.status(400);
+      throw new Error('Email, OTP and new password are required');
+    }
+    if (String(password).length < 6) {
+      res.status(400);
+      throw new Error('Password must be at least 6 characters');
+    }
+    if (confirmPassword != null && password !== confirmPassword) {
+      res.status(400);
+      throw new Error('Passwords do not match');
+    }
+
+    const vendor = await Vendor.findOne({ email });
+    if (!vendor) {
+      res.status(404);
+      throw new Error('Vendor not found');
+    }
+
+    const result = await consumeVerifiedOtp({ email, otp, purpose: 'vendor_reset' });
+    if (!result.ok) {
+      res.status(401);
+      throw new Error(result.message);
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    vendor.password = await bcrypt.hash(password, salt);
+    await vendor.save();
+    await EmailOtp.deleteMany({ email, purpose: 'vendor_reset' });
+
+    res.status(200).json({
+      success: true,
+      message: 'Password updated successfully. You can now sign in.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Register a new vendor
 // @route   POST /api/vendors/register
 // @access  Public
 const registerVendor = async (req, res, next) => {
   try {
-    const { email, mobile, password } = req.body;
+    const { email: rawEmail, mobile, otp } = req.body;
+    const email = normalizeEmail(rawEmail);
+
+    if (!email || !mobile) {
+      res.status(400);
+      throw new Error('Email and mobile are required');
+    }
+
+    if (!otp) {
+      res.status(400);
+      throw new Error('Please verify your email with the OTP sent to your inbox');
+    }
+
+    const otpCheck = await EmailOtp.findOne({
+      email,
+      purpose: 'vendor_register',
+      otp: String(otp).trim(),
+      verified: true,
+      expiresAt: { $gt: new Date() },
+    }).sort({ createdAt: -1 });
+
+    if (!otpCheck) {
+      const live = await EmailOtp.findOne({ email, purpose: 'vendor_register' }).sort({ createdAt: -1 });
+      if (!live || live.otp !== String(otp).trim() || live.expiresAt < new Date()) {
+        res.status(401);
+        throw new Error('Invalid or expired email OTP. Please verify your email again.');
+      }
+      live.verified = true;
+      await live.save();
+    }
 
     const vendorExists = await Vendor.findOne({ $or: [{ email }, { mobile }] });
 
@@ -23,19 +240,47 @@ const registerVendor = async (req, res, next) => {
       throw new Error('Vendor with this email or mobile already exists');
     }
 
+    // OTP-only auth — store a random unusable password hash for schema compatibility
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(
+      `otp_${email}_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      salt
+    );
+
+    const { password: _ignored, confirmPassword: _ignored2, ...rest } = req.body;
 
     const vendorReq = await Vendor.create({
-      ...req.body,
+      ...rest,
+      email,
       password: hashedPassword,
-      isApproved: false
+      isApproved: false,
     });
 
+    await EmailOtp.deleteMany({ email, purpose: 'vendor_register' });
+
     if (vendorReq) {
+      try {
+        await sendNotificationToUser(
+          null,
+          'admin',
+          {
+            title: 'New Vendor Joining Request',
+            body: `${vendorReq.fullName} (${vendorReq.email}) applied as a seller${vendorReq.storeName ? ` — store: ${vendorReq.storeName}` : ''}. Review under New Joining Requests.`,
+            data: {
+              relatedId: vendorReq._id.toString(),
+              relatedModel: 'Vendor',
+              link: '/admin/vendors/pending',
+            },
+          },
+          'alert'
+        );
+      } catch (notifyErr) {
+        console.error('Failed to notify admin of new vendor:', notifyErr.message);
+      }
+
       res.status(201).json({
         success: true,
-        message: 'Registration successful! Your application is pending admin approval.'
+        message: 'Registration successful! Your application is pending admin approval.',
       });
     } else {
       res.status(400);
@@ -46,12 +291,149 @@ const registerVendor = async (req, res, next) => {
   }
 };
 
-// @desc    Login vendor
+// @desc    Send login OTP to vendor email
+// @route   POST /api/vendors/send-login-otp
+// @access  Public
+const sendVendorLoginOtp = async (req, res, next) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      res.status(400);
+      throw new Error('Please provide a valid email address');
+    }
+
+    const vendor = await Vendor.findOne({ email });
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        code: 'VENDOR_NOT_FOUND',
+        message: 'Seller account not found. Please register first.',
+      });
+    }
+
+    if (vendor.isBlocked) {
+      res.status(403);
+      throw new Error('Your account has been blocked by the admin.');
+    }
+
+    const { mailResult, otp } = await createAndSendEmailOtp({
+      email,
+      purpose: 'vendor_login',
+      name: vendor.fullName,
+    });
+
+    if (!mailResult.success) {
+      res.status(502);
+      throw new Error(`Failed to send OTP email. Please try again. (${mailResult.message})`);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Login OTP sent to your email',
+      pendingApproval: !vendor.isApproved,
+      ...(mailResult.devOtp && { devOtp: otp, devNote: 'OTP visible when SMTP mock / default OTP is enabled' }),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Verify login OTP and sign in vendor
+// @route   POST /api/vendors/verify-login-otp
+// @access  Public
+const verifyVendorLoginOtp = async (req, res, next) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    const otp = String(req.body.otp || '').trim();
+
+    if (!email || !otp) {
+      res.status(400);
+      throw new Error('Email and OTP are required');
+    }
+
+    const vendor = await Vendor.findOne({ email });
+    if (!vendor) {
+      res.status(404);
+      throw new Error('Seller account not found. Please register first.');
+    }
+
+    if (vendor.isBlocked) {
+      res.status(403);
+      throw new Error('Your account has been blocked by the admin.');
+    }
+
+    const result = await consumeVerifiedOtp({ email, otp, purpose: 'vendor_login' });
+    if (!result.ok) {
+      res.status(401);
+      throw new Error(result.message);
+    }
+
+    if (!vendor.isApproved) {
+      res.status(403);
+      throw new Error('Your account is not approved or is pending admin approval.');
+    }
+
+    await EmailOtp.deleteMany({ email, purpose: 'vendor_login' });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        _id: vendor.id,
+        name: vendor.fullName,
+        email: vendor.email,
+        role: vendor.role,
+        storeName: vendor.storeName,
+        token: generateToken(vendor._id),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Check vendor registration / approval status by email
+// @route   POST /api/vendors/registration-status
+// @access  Public
+const getVendorRegistrationStatus = async (req, res, next) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    if (!email) {
+      res.status(400);
+      throw new Error('Email is required');
+    }
+    const vendor = await Vendor.findOne({ email }).select('isApproved isBlocked fullName email');
+    if (!vendor) {
+      return res.status(404).json({ success: false, message: 'No application found for this email' });
+    }
+    res.status(200).json({
+      success: true,
+      data: {
+        email: vendor.email,
+        name: vendor.fullName,
+        isApproved: vendor.isApproved,
+        isBlocked: vendor.isBlocked,
+        status: vendor.isBlocked ? 'blocked' : vendor.isApproved ? 'approved' : 'pending',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Login vendor (legacy password — kept for admin tools; prefer OTP)
 // @route   POST /api/vendors/login
 // @access  Public
 const loginVendor = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body.email);
+    const { password, otp } = req.body;
+
+    // Prefer OTP login if otp provided
+    if (otp) {
+      req.body.email = email;
+      return verifyVendorLoginOtp(req, res, next);
+    }
+
     const vendor = await Vendor.findOne({ email });
 
     if (!vendor) {
@@ -69,22 +451,22 @@ const loginVendor = async (req, res, next) => {
       throw new Error('Your account is not approved or is pending admin approval.');
     }
 
-    if (await bcrypt.compare(password, vendor.password)) {
-      res.status(200).json({
-        success: true,
-        data: {
-          _id: vendor.id,
-          name: vendor.fullName,
-          email: vendor.email,
-          role: vendor.role,
-          storeName: vendor.storeName,
-          token: generateToken(vendor._id)
-        }
-      });
-    } else {
+    if (!vendor.password || !(await bcrypt.compare(String(password || ''), vendor.password))) {
       res.status(401);
-      throw new Error('Invalid email or password');
+      throw new Error('Invalid email or password. Please sign in with email OTP.');
     }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        _id: vendor.id,
+        name: vendor.fullName,
+        email: vendor.email,
+        role: vendor.role,
+        storeName: vendor.storeName,
+        token: generateToken(vendor._id),
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -578,6 +960,13 @@ const updateVendorProfile = async (req, res, next) => {
 module.exports = {
   registerVendor,
   loginVendor,
+  sendVendorRegisterOtp,
+  verifyVendorRegisterOtp,
+  sendVendorLoginOtp,
+  verifyVendorLoginOtp,
+  getVendorRegistrationStatus,
+  forgotVendorPassword,
+  resetVendorPassword,
   getPendingVendors,
   getApprovedVendors,
   getBlockedVendors,

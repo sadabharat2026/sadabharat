@@ -7,7 +7,7 @@ import {
   Tag, Star, Bell, TrendingUp, HelpCircle, Settings,
   Search, MessageSquare, Menu, X, LogOut, Truck
 } from 'lucide-react';
-import vendorLogo from '../../assets/images/WhatsApp Image 2026-05-26 at 1.34.49 PM.jpeg';
+import vendorLogo from '../../assets/images/WhatsApp_Image_2026-05-26_at_1.34.49_PM-removebg-preview.png';
 import api from '../../utils/api';
 
 const VendorLayout = () => {

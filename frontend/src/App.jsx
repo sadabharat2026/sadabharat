@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Outlet, Navigate, useNavigate } from 'react-router-dom';
 import { ShopProvider, useShop } from './context/ShopContext';
 import Lenis from 'lenis';
 import 'lenis/dist/lenis.css';
@@ -95,6 +95,7 @@ import VendorSettings from './components/vendor/VendorSettings';
 import VendorLogistics from './components/vendor/VendorLogistics';
 import VendorLogin from './components/vendor/VendorLogin';
 import VendorRegister from './components/vendor/VendorRegister';
+import VendorForgotPassword from './components/vendor/VendorForgotPassword';
 import VendorAuthGuard from './components/vendor/VendorAuthGuard';
 
 const PublicLayout = () => {
@@ -229,30 +230,32 @@ const AdminRoutes = () => (
 
 const VendorRoutes = () => (
   <Routes>
-    {/* Public Vendor Routes */}
-    <Route path="/login" element={<VendorLogin />} />
-    <Route path="/register" element={<VendorRegister />} />
+    {/* Public Vendor Routes — relative paths under /vendor/* */}
+    <Route path="login" element={<VendorLogin />} />
+    <Route path="register" element={<VendorRegister />} />
+    <Route path="forgot-password" element={<VendorForgotPassword />} />
     {/* Protected Vendor Routes */}
     <Route element={<VendorAuthGuard />}>
       <Route element={<VendorLayout />}>
-        <Route path="/" element={<VendorDashboard />} />
-        <Route path="/products" element={<VendorProducts />} />
-        <Route path="/add-product" element={<VendorAddProduct />} />
-        <Route path="/edit-product/:id" element={<VendorAddProduct />} />
-        <Route path="/inventory" element={<VendorInventory />} />
-        <Route path="/orders" element={<VendorOrders />} />
-        <Route path="/returns" element={<VendorReturns />} />
-        <Route path="/logistics" element={<VendorLogistics />} />
-        <Route path="/earnings" element={<VendorEarnings />} />
-        <Route path="/payouts" element={<VendorPayouts />} />
-        <Route path="/coupons" element={<VendorCoupons />} />
-        <Route path="/reviews" element={<VendorReviews />} />
-        <Route path="/notifications" element={<VendorNotifications />} />
-        <Route path="/analytics" element={<VendorAnalytics />} />
-        <Route path="/support" element={<VendorSupport />} />
-        <Route path="/settings" element={<VendorSettings />} />
+        <Route index element={<VendorDashboard />} />
+        <Route path="products" element={<VendorProducts />} />
+        <Route path="add-product" element={<VendorAddProduct />} />
+        <Route path="edit-product/:id" element={<VendorAddProduct />} />
+        <Route path="inventory" element={<VendorInventory />} />
+        <Route path="orders" element={<VendorOrders />} />
+        <Route path="returns" element={<VendorReturns />} />
+        <Route path="logistics" element={<VendorLogistics />} />
+        <Route path="earnings" element={<VendorEarnings />} />
+        <Route path="payouts" element={<VendorPayouts />} />
+        <Route path="coupons" element={<VendorCoupons />} />
+        <Route path="reviews" element={<VendorReviews />} />
+        <Route path="notifications" element={<VendorNotifications />} />
+        <Route path="analytics" element={<VendorAnalytics />} />
+        <Route path="support" element={<VendorSupport />} />
+        <Route path="settings" element={<VendorSettings />} />
       </Route>
     </Route>
+    <Route path="*" element={<Navigate to="login" replace />} />
   </Routes>
 );
 
@@ -270,6 +273,19 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { FiX, FiBell } from 'react-icons/fi';
 
 const NotificationListener = () => {
+  return null;
+};
+
+/** Fix accidental URLs like //vendor → /vendor */
+const PathNormalizer = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  React.useEffect(() => {
+    if (location.pathname.includes('//')) {
+      const cleaned = location.pathname.replace(/\/{2,}/g, '/') || '/';
+      navigate(`${cleaned}${location.search}${location.hash}`, { replace: true });
+    }
+  }, [location.pathname, location.search, location.hash, navigate]);
   return null;
 };
 
@@ -318,6 +334,7 @@ function App() {
       <NotificationListener />
       <Router>
         <ScrollToTop />
+        <PathNormalizer />
         <MetaPixelTracker />
         <Routes>
           <Route path="/admin/*" element={<AdminRoutes />} />
