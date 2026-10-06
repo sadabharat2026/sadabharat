@@ -636,6 +636,29 @@ const ProductDetail = () => {
                   )}
                 </div>
                 <p className="text-[11px] text-gray-500 font-medium">Inclusive of all taxes</p>
+                {(() => {
+                  const stock = Number(product.stock) || 0;
+                  const LOW_STOCK_THRESHOLD = 10;
+                  if (stock <= 0) {
+                    return (
+                      <span className="inline-block mt-2 text-[11px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md border border-red-100">
+                        Out of Stock
+                      </span>
+                    );
+                  }
+                  if (stock <= LOW_STOCK_THRESHOLD) {
+                    return (
+                      <span className="inline-block mt-2 text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-md border border-amber-100">
+                        Only {stock} left in stock — order soon
+                      </span>
+                    );
+                  }
+                  return (
+                    <span className="inline-block mt-2 text-[11px] font-bold text-[#054425] bg-green-50 px-2 py-1 rounded-md border border-green-100">
+                      In Stock
+                    </span>
+                  );
+                })()}
               </div>
 
               {/* Benefit Icons Row */}
@@ -706,7 +729,14 @@ const ProductDetail = () => {
                   </div>
 
                   <div className="flex items-center">
-                    {totalQtyInCart === 0 ? (
+                    {Number(product.stock) <= 0 ? (
+                      <button
+                        disabled
+                        className="h-[38px] px-8 flex items-center justify-center bg-gray-300 text-gray-500 rounded-md text-[13px] font-bold tracking-wide cursor-not-allowed"
+                      >
+                        Out of Stock
+                      </button>
+                    ) : totalQtyInCart === 0 ? (
                       <button
                         onClick={handleAddToCart}
                         className="h-[38px] px-8 flex items-center justify-center bg-[#054425] text-white rounded-md text-[13px] font-bold hover:bg-[#04331c] transition-colors tracking-wide shadow-sm"
@@ -741,7 +771,7 @@ const ProductDetail = () => {
                 </div>
 
                 {/* Buy Now Button */}
-                {totalQtyInCart === 0 && (
+                {totalQtyInCart === 0 && Number(product.stock) > 0 && (
                   <button
                     onClick={handleBuyNow}
                     className="w-full mt-4 h-[40px] flex items-center justify-center border border-[#054425] text-[#054425] rounded-md text-[13px] font-bold hover:bg-[#EAF0EC] transition-colors tracking-wide"

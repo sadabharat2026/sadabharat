@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiChevronLeft, FiShoppingBag, FiCreditCard, FiTruck, FiCheckCircle, FiShield, FiMinus, FiPlus, FiTrash2, FiCheck, FiAlertTriangle, FiRefreshCw, FiTag } from 'react-icons/fi';
+import { FiChevronLeft, FiShoppingBag, FiCreditCard, FiTruck, FiCheckCircle, FiShield, FiMinus, FiPlus, FiTrash2, FiCheck, FiRefreshCw, FiTag } from 'react-icons/fi';
 import { useShop } from '../../context/ShopContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Confetti from 'react-confetti';
@@ -40,8 +40,6 @@ const Checkout = () => {
   const [couponError, setCouponError] = useState('');
   const [availableCoupons, setAvailableCoupons] = useState([]);
   const [couponsLoading, setCouponsLoading] = useState(true);
-  const [isDisclaimerAccepted, setIsDisclaimerAccepted] = useState(false);
-  const [disclaimerError, setDisclaimerError] = useState('');
   const [errors, setErrors] = useState({});
   const [isPincodeLoading, setIsPincodeLoading] = useState(false);
   const [pincodeStatus, setPincodeStatus] = useState('');
@@ -355,11 +353,6 @@ const Checkout = () => {
       alert("Please fill all required shipping details before proceeding.");
       return;
     }
-    if (!isDisclaimerAccepted) {
-      setDisclaimerError('Please accept the disclaimer to continue.');
-      alert("Please read and accept the fraud disclaimer in the Payment Section.");
-      return;
-    }
 
     setIsPaymentLoading(true);
 
@@ -549,17 +542,6 @@ const Checkout = () => {
                                     <span className="text-sm">Cash on Delivery</span>
                                 </label>
                             )}
-                        </div>
-
-                        <div className="bg-amber-50 border border-amber-100 p-3 rounded-lg">
-                            <div className="flex items-center gap-2 text-amber-700 mb-2">
-                              <FiAlertTriangle size={14} />
-                              <h3 className="text-xs uppercase font-medium">Fraud Alert</h3>
-                            </div>
-                            <label className="flex items-center gap-3 mt-1 cursor-pointer">
-                              <input type="checkbox" required checked={isDisclaimerAccepted} onChange={(e) => { setIsDisclaimerAccepted(e.target.checked); setDisclaimerError(''); }} className="accent-[#054425] w-4 h-4" />
-                              <span className="text-xs text-amber-900">I have read the disclaimer.</span>
-                            </label>
                         </div>
                     </div>
 

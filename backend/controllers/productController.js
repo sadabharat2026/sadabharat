@@ -17,6 +17,15 @@ const normalizeProductMedia = (body = {}) => {
   };
 };
 
+// Helper to compute the authoritative stock number from a product payload.
+// Variant products track stock per size, so Inventory stores the sum across all variants.
+const computeStockFromPayload = (body = {}) => {
+  if (body.hasVariants && Array.isArray(body.variants)) {
+    return body.variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
+  }
+  return Number(body.stock) || 0;
+};
+
 // Helper to inject stock into product responses
 const injectStock = async (products) => {
   const isArray = Array.isArray(products);
@@ -90,7 +99,7 @@ const createProduct = async (req, res) => {
       product: product._id,
       vendor: product.vendor,
       admin: product.admin,
-      stock: req.body.stock || 0
+      stock: computeStockFromPayload(req.body)
     });
 
     const productWithStock = await injectStock(product);
@@ -238,6 +247,15 @@ const updateProduct = async (req, res) => {
         runValidators: true
       }
     );
+
+    // Keep Inventory in sync whenever admin/vendor changes stock on edit
+    if (req.body.stock !== undefined || req.body.variants !== undefined) {
+      await Inventory.findOneAndUpdate(
+        { product: product._id },
+        { $set: { stock: computeStockFromPayload(req.body), vendor: product.vendor, admin: product.admin } },
+        { upsert: true }
+      );
+    }
 
     const productWithStock = await injectStock(product);
     invalidateCatalog('products').catch(() => {});
