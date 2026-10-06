@@ -200,6 +200,7 @@ const ProductDetail = () => {
   const { products, addToCart, removeFromCart, updateQuantity, cart, toggleWishlist, isInWishlist, loading, isAuthenticated, user, setIsCartDrawerOpen, triggerFlyToCart } = useShop();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isAdded, setIsAdded] = useState(false);
+  const [isLinkCopied, setIsLinkCopied] = useState(false);
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
@@ -248,6 +249,25 @@ const ProductDetail = () => {
       return;
     }
     setIsChatOpen(true);
+  };
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/product/${product._id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: product.name, url: shareUrl });
+      } catch (err) {
+        // user cancelled or share failed silently
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setIsLinkCopied(true);
+      setTimeout(() => setIsLinkCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+    }
   };
 
   const fetchAvailableCoupons = async () => {
@@ -442,6 +462,16 @@ const ProductDetail = () => {
                 <button className="absolute top-6 right-6 p-3 bg-white rounded-full shadow-sm z-10 transition-all hover:scale-110 border border-gray-100" onClick={() => toggleWishlist(product)}>
                   <FiHeart className={`w-5 h-5 ${isInWishlist(product._id) ? 'fill-current text-red-500' : 'text-gray-800'}`} />
                 </button>
+                <div className="absolute top-6 right-20 z-10">
+                  <button className="p-3 bg-white rounded-full shadow-sm transition-all hover:scale-110 border border-gray-100" onClick={handleShare} aria-label="Share product">
+                    <FiShare2 className="w-5 h-5 text-gray-800" />
+                  </button>
+                  {isLinkCopied && (
+                    <span className="absolute top-1/2 right-full -translate-y-1/2 mr-2 whitespace-nowrap bg-[#054425] text-white text-[11px] font-semibold px-2 py-1 rounded-md shadow-sm">
+                      Link copied!
+                    </span>
+                  )}
+                </div>
                 {/* Vertical Thumbnails */}
                 <div className="flex md:flex-col gap-3 shrink-0 overflow-x-auto md:overflow-visible items-center justify-center z-10 w-[76px] pl-0 ml-0 md:pl-0 md:-ml-2">
                   <button className="hidden md:flex items-center justify-center p-1 text-gray-600 hover:text-black transition-colors bg-white rounded-full shadow-sm w-9 h-9 border border-gray-200" onClick={() => setSelectedImageIndex(prev => Math.max(0, prev - 1))}>
