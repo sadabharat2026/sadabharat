@@ -61,36 +61,37 @@ export async function sendMessage(conversationId, { senderId, senderRole, sender
 
   await push(messagesRef, messageData);
 
+  // Determine recipient role/id from conversation type (used for both unread flag and push notification)
+  let recipientRole = 'user';
+  let recipientId = null;
+
+  if (conversationId.startsWith('vendor-admin-')) {
+    recipientRole = senderRole === 'vendor' ? 'admin' : 'vendor';
+    recipientId = conversationId.replace('vendor-admin-', '');
+  } else if (conversationId.startsWith('user-admin-')) {
+    recipientRole = senderRole === 'user' ? 'admin' : 'user';
+    recipientId = conversationId.replace('user-admin-', '');
+  } else if (conversationId.startsWith('user-vendor-')) {
+    const parts = conversationId.split('-'); // user-vendor-userId-vendorId
+    if (senderRole === 'user') {
+      recipientRole = 'vendor';
+      recipientId = parts[3];
+    } else {
+      recipientRole = 'user';
+      recipientId = parts[2];
+    }
+  }
+
   // Update conversation metadata with last message preview
   const preview = imageUrl ? '📷 Image' : (text?.slice(0, 60) || '');
   await update(metaRef, {
     lastMessage: preview,
     lastMessageAt: Date.now(),
-    [`unread_${senderRole === 'user' ? 'admin' : senderRole === 'vendor' ? 'admin' : 'user'}`]: true,
+    [`unread_${recipientRole}`]: true,
   });
 
   // Trigger backend notification
   try {
-    let recipientRole = 'user';
-    let recipientId = null;
-
-    if (conversationId.startsWith('vendor-admin-')) {
-      recipientRole = senderRole === 'vendor' ? 'admin' : 'vendor';
-      recipientId = conversationId.replace('vendor-admin-', '');
-    } else if (conversationId.startsWith('user-admin-')) {
-      recipientRole = senderRole === 'user' ? 'admin' : 'user';
-      recipientId = conversationId.replace('user-admin-', '');
-    } else if (conversationId.startsWith('user-vendor-')) {
-      const parts = conversationId.split('-'); // user-vendor-userId-vendorId
-      if (senderRole === 'user') {
-        recipientRole = 'vendor';
-        recipientId = parts[3];
-      } else {
-        recipientRole = 'user';
-        recipientId = parts[2];
-      }
-    }
-
     if (recipientId) {
       await api.post('/notifications/chat', {
         recipientId,

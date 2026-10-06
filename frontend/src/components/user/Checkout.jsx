@@ -449,8 +449,8 @@ const Checkout = () => {
             <button
               onClick={async () => {
                 try {
-                  const res = await api.get(`/orders/track/${orderId}`);
-                  const order = res.data.data.order;
+                  const res = await api.get(`/orders/${orderId}`);
+                  const order = res.data.data;
                   const m = await import('../../utils/invoiceHelper');
                   m.generateInvoice(order);
                 } catch (err) {

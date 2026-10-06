@@ -65,9 +65,9 @@ import AdminCoupons from './components/admin/AdminCoupons';
 import AdminOffers from './components/admin/AdminOffers';
 import AdminVendors from './components/admin/AdminVendors';
 import AdminReturns from './components/admin/AdminReturns';
+import AdminSupport from './components/admin/AdminSupport';
 import AdminBlogs from './components/admin/AdminBlogs';
 import AdminInstagram from './components/admin/AdminInstagram';
-import AdminReplacements from './components/admin/AdminReplacements';
 import AdminReviews from './components/admin/AdminReviews';
 import AdminNotifications from './components/admin/AdminNotifications';
 import AdminLogistics from './components/admin/AdminLogistics';
@@ -214,6 +214,7 @@ const AdminRoutes = () => (
       <Route path="/vendors/pending" element={<AdminVendors />} />
       <Route path="/vendors/blocked" element={<AdminVendors />} />
       <Route path="/returns" element={<AdminReturns />} />
+      <Route path="/support" element={<AdminSupport />} />
       <Route path="/coupons" element={<AdminCoupons />} />
       <Route path="/offers" element={<AdminOffers />} />
       <Route path="/customers" element={<AdminUsers />} />

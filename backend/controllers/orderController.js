@@ -1,5 +1,6 @@
 const Order = require('../models/orderModel');
 const Coupon = require('../models/couponModel');
+const Inventory = require('../models/inventoryModel');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const { sendNotificationToUser } = require('../utils/pushNotificationHelper');
@@ -13,7 +14,34 @@ const quoteItemsPayload = (items = []) => items.map((item) => ({
   image: item.image
 }));
 
+// Atomically decrements stock for every item; rolls back and throws if any item lacks enough stock.
+const decrementStock = async (items) => {
+  const decremented = [];
+  for (const item of items) {
+    const updated = await Inventory.findOneAndUpdate(
+      { product: item.product, stock: { $gte: item.quantity } },
+      { $inc: { stock: -item.quantity } },
+      { new: true }
+    );
+    if (!updated) {
+      for (const done of decremented) {
+        await Inventory.updateOne({ product: done.product }, { $inc: { stock: done.quantity } });
+      }
+      throw new Error(`Insufficient stock for ${item.name || 'an item in your order'}`);
+    }
+    decremented.push({ product: item.product, quantity: item.quantity });
+  }
+};
+
+const restockItems = async (items) => {
+  for (const item of items) {
+    await Inventory.updateOne({ product: item.product }, { $inc: { stock: item.qty != null ? item.qty : item.quantity } });
+  }
+};
+
 const savePricedOrder = async ({ userId, quote, shippingAddress, paymentMethod, paymentResult, isPaid }) => {
+  await decrementStock(quote.items);
+
   const orderItems = quote.items.map((item) => ({
     product: item.product,
     name: item.name,
@@ -514,8 +542,14 @@ const adminUpdateReturn = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
 
+    const wasAlreadyReturned = order.returnStatus === 'Returned';
     order.returnStatus = returnStatus;
     await order.save();
+
+    // Restock items once the returned product is physically confirmed back
+    if (returnStatus === 'Returned' && !wasAlreadyReturned) {
+      await restockItems(order.orderItems);
+    }
 
     // Trigger push notification to user
     try {

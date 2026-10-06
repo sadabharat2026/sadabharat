@@ -7,6 +7,14 @@ const dtdcService = require('../services/dtdc.service');
 const shippingProvider = () =>
   String(process.env.SHIPPING_PROVIDER || 'SHIPROCKET').trim().toUpperCase();
 
+// Keep per-item status in sync with the order-level delivered state set by courier webhooks/polling,
+// since the return/replace flow and customer order tracking only read orderItems[].status.
+const markAllItemsDelivered = (order) => {
+  for (const item of order.orderItems) {
+    if (item.status !== 'Delivered') item.status = 'Delivered';
+  }
+};
+
 const generateShiprocketOrderId = (dbOrderId) => `${dbOrderId}_${Date.now()}`;
 
 const ensureLabelDir = () => {
@@ -228,6 +236,7 @@ const trackShipment = async (req, res, next) => {
         order.shippingStatus = 'Delivered';
         order.isDelivered = true;
         order.deliveredAt = new Date();
+        markAllItemsDelivered(order);
       } else if (statusText.includes('TRANSIT') || statusText.includes('OUT FOR')) {
         order.shippingStatus = 'In Transit';
       }
@@ -351,6 +360,7 @@ const shiprocketWebhook = async (req, res) => {
           order.status = 'Delivered';
           order.isDelivered = true;
           order.deliveredAt = new Date();
+          markAllItemsDelivered(order);
         } else if (current_status_id === 8 || current_status === 'CANCELLED') {
           order.status = 'Cancelled';
         }
@@ -387,6 +397,7 @@ const dtdcWebhook = async (req, res) => {
       order.status = 'Delivered';
       order.isDelivered = true;
       order.deliveredAt = new Date();
+      markAllItemsDelivered(order);
     } else if (upper.includes('CANCEL')) {
       order.status = 'Cancelled';
     }

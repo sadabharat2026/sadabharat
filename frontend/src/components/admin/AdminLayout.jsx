@@ -172,6 +172,7 @@ const AdminLayout = () => {
       ]
     },
     { title: 'Returns & Replace', path: '/admin/returns', icon: <FiRotateCcw /> },
+    { title: 'Support Centre', path: '/admin/support', icon: <FiMessageSquare /> },
     { title: 'Coupons', path: '/admin/coupons', icon: <FiTag /> },
     { title: 'Divine Offers', path: '/admin/offers', icon: <FiZap /> },
     { title: 'Banners', path: '/admin/banners', icon: <FiImage /> },

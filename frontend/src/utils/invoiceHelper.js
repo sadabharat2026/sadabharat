@@ -9,6 +9,11 @@ export const generateInvoice = async (order) => {
   element.style.width = '700px';
 
   const date = new Date(order.createdAt).toLocaleDateString();
+  const orderId = order.orderId || order._id;
+  const items = (order.items || order.orderItems || []).map((item) => ({
+    ...item,
+    quantity: item.quantity ?? item.qty ?? 1,
+  }));
   const subTotal = order.itemsPrice ?? order.subTotal ?? 0;
   const taxAmount = order.taxPrice ?? order.taxAmount ?? 0;
   const taxRate = order.taxRate ?? '';
@@ -47,7 +52,7 @@ export const generateInvoice = async (order) => {
       </div>
       <div style="text-align: right;">
         <h3 style="font-size: 12px; text-transform: uppercase; color: #5C2E3E; margin-bottom: 10px;">Invoice Details:</h3>
-        <p style="margin: 0; font-size: 10px;"><strong>Order ID:</strong> ${order.orderId}</p>
+        <p style="margin: 0; font-size: 10px;"><strong>Order ID:</strong> ${orderId}</p>
         <p style="margin: 5px 0; font-size: 10px;"><strong>Date:</strong> ${date}</p>
         <p style="margin: 0; font-size: 10px;"><strong>Status:</strong> ${order.status}</p>
         <p style="margin: 5px 0; font-size: 10px;"><strong>Payment:</strong> ${order.paymentStatus || 'Success'} (${order.paymentMethod || 'PayNow'})</p>
@@ -64,7 +69,7 @@ export const generateInvoice = async (order) => {
         </tr>
       </thead>
       <tbody>
-        ${order.items.map(item => `
+        ${items.map(item => `
           <tr style="border-bottom: 1px solid #f0f0f0; font-size: 10px;">
             <td style="padding: 12px;">
               <p style="margin: 0; font-weight: bold; color: #333;">${item.name}</p>
@@ -113,7 +118,7 @@ export const generateInvoice = async (order) => {
 
   const opt = {
     margin: 10,
-    filename: `Invoice_${order.orderId}.pdf`,
+    filename: `Invoice_${orderId}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }

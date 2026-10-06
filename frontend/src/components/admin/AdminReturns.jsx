@@ -52,9 +52,10 @@ const AdminReturns = () => {
         )
     );
 
-    const BankDetailsModal = ({ order, onMarkRefunded, onClose }) => {
+    const BankDetailsModal = ({ order, mode, onMarkRefunded, onClose }) => {
         if (!order) return null;
-        
+        const isReplacement = mode === 'Replacements';
+
         return createPortal(
             <motion.div
                 initial={{ opacity: 0 }}
@@ -68,11 +69,32 @@ const AdminReturns = () => {
                 className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden"
             >
                 <div className="bg-[#5C2E3E] px-6 py-4 flex justify-between items-center text-white">
-                    <h3 className="text-xs font-black uppercase tracking-widest">Bank Ritual Details</h3>
+                    <h3 className="text-xs font-black uppercase tracking-widest">
+                        {isReplacement ? 'Replacement Details' : 'Bank Ritual Details'}
+                    </h3>
                     <button onClick={onClose}><FiX size={20} /></button>
                 </div>
                 <div className="p-8 space-y-6">
-                    {order.refundAccountDetails ? (
+                    {isReplacement ? (
+                        <div className="space-y-4">
+                            <div className="flex flex-col gap-2">
+                                {order.orderItems?.map((item, idx) => (
+                                    <div key={idx} className="flex items-center gap-3 bg-gray-50 border border-gray-100 p-2 rounded-lg">
+                                        <img src={item.image} alt="" className="w-10 h-10 object-cover rounded-md bg-white" />
+                                        <div className="flex flex-col">
+                                            <span className="text-[11px] font-bold text-[#5C2E3E]">{item.name}</span>
+                                            <span className="text-[9px] text-gray-500">Qty: {item.quantity}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                                <p className="text-[9px] text-blue-800 font-['Cormorant',_serif] italic leading-relaxed">
+                                    "Confirm only once the replacement item has been dispatched to the customer. This action is irreversible."
+                                </p>
+                            </div>
+                        </div>
+                    ) : order.refundAccountDetails ? (
                         <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -107,12 +129,12 @@ const AdminReturns = () => {
                 </div>
                 <div className="px-6 py-4 bg-gray-50 flex items-center justify-between border-t border-gray-100">
                     <button onClick={onClose} className="text-[10px] font-black uppercase text-gray-400">Cancel</button>
-                    {order.refundAccountDetails && (
+                    {(isReplacement || order.refundAccountDetails) && (
                         <button
                             onClick={() => { onMarkRefunded(order._id); onClose(); }}
                             className="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-sans font-medium text-gray-800 capitalize shadow-lg hover:bg-green-700 transition-all"
                         >
-                            Confirm & Refund
+                            {isReplacement ? 'Confirm & Mark Replaced' : 'Confirm & Refund'}
                         </button>
                     )}
                 </div>
@@ -279,9 +301,9 @@ const AdminReturns = () => {
                                                             onClick={() => setSelectedOrderDetails(order)}
                                                             className="px-3 py-1.5 bg-admin-gold text-white text-xs font-sans font-bold uppercase tracking-widest rounded-md hover:bg-admin-dark shadow-md transition-colors w-[100px]"
                                                         >
-                                                            Show Details
+                                                            {activeTab === 'Replacements' ? 'Mark Replaced' : 'Show Details'}
                                                         </button>
-                                                        {!order.refundAccountDetails && (
+                                                        {activeTab === 'Refunds' && !order.refundAccountDetails && (
                                                             <span className="text-[7px] font-black text-red-400 uppercase tracking-tighter animate-pulse">Awaiting Bank Info</span>
                                                         )}
                                                     </div>
@@ -305,6 +327,7 @@ const AdminReturns = () => {
                 {selectedOrderDetails && (
                     <BankDetailsModal
                         order={selectedOrderDetails}
+                        mode={activeTab}
                         onClose={() => setSelectedOrderDetails(null)}
                         onMarkRefunded={(id) => updateReturnStatus(id, activeTab === 'Refunds' ? 'Returned' : 'Replaced')}
                     />

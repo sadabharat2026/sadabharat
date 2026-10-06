@@ -16,7 +16,8 @@ const timeAgo = (timestamp) => {
 };
 
 const ConversationList = ({
-  filterPrefix,         // e.g. 'user-admin' | 'vendor-admin' | 'user-vendor-{vendorId}'
+  filterPrefix,         // e.g. 'user-admin-' | 'vendor-admin-' | 'user-vendor-{vendorId}'
+  filterSuffix,         // optional: restrict to keys ending in `-{filterSuffix}` (e.g. a specific vendorId)
   selectedId,
   onSelect,
   currentUserRole,      // 'admin' | 'vendor'
@@ -32,14 +33,17 @@ const ConversationList = ({
 
     setLoading(true);
     unsubscribeRef.current = subscribeToInbox(filterPrefix, (convs) => {
-      setConversations(convs);
+      const scoped = filterSuffix
+        ? convs.filter((c) => c.id.endsWith(`-${filterSuffix}`))
+        : convs;
+      setConversations(scoped);
       setLoading(false);
     });
 
     return () => {
       if (unsubscribeRef.current) unsubscribeRef.current();
     };
-  }, [filterPrefix]);
+  }, [filterPrefix, filterSuffix]);
 
   const filtered = conversations.filter((c) => {
     if (!searchTerm) return true;

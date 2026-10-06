@@ -9,9 +9,9 @@ router.post('/razorpay/create', protect, createRazorpayOrder);
 router.post('/razorpay/verify', protect, verifyRazorpayOrder);
 router.get('/my-orders', protect, getMyOrders);
 
-router.get('/vendor', protect, getVendorOrders);
+router.get('/vendor', protect, authorize('vendor'), getVendorOrders);
 router.get('/admin', protect, authorize('admin'), getAdminOrders);
-router.put('/:orderId/item/:itemId/status', protect, updateOrderItemStatus);
+router.put('/:orderId/item/:itemId/status', protect, authorize('admin', 'vendor'), updateOrderItemStatus);
 
 router.patch('/:id/request-return', protect, requestReturn);
 router.patch('/:id/update-refund-details', protect, updateRefundDetails);

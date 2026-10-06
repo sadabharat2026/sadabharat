@@ -90,6 +90,7 @@ const VendorSupport = () => {
               <div className="flex-1 overflow-hidden">
                 <ConversationList
                   filterPrefix={`user-vendor-`}
+                  filterSuffix={vendorInfo._id}
                   selectedId={selectedConversation?.id}
                   onSelect={setSelectedConversation}
                   currentUserRole="vendor"
