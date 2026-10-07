@@ -3,8 +3,8 @@ const router = express.Router();
 const { getFinanceStats, updateEarningCommission, getAdminPayouts, clearVendorPayout, getDashboardStats, getUserAnalytics } = require('../controllers/adminController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
-// Using basic protect and authorize for admin routes
-// In production, ensure admin users have role 'admin'
+router.use(protect, authorize('admin'));
+
 router.route('/dashboard-stats').get(getDashboardStats);
 router.route('/analytics').get(getUserAnalytics);
 router.route('/finance-stats').get(getFinanceStats);
@@ -16,10 +16,10 @@ router.route('/payouts/:vendorId/clear').post(clearVendorPayout);
 
 // Reviews routes
 const { getAdminReviews, toggleReviewApproval, deleteReview, replyReview } = require('../controllers/adminController');
-router.route('/reviews').get(protect, authorize('admin'), getAdminReviews);
-router.route('/reviews/:id/toggle-approval').patch(protect, authorize('admin'), toggleReviewApproval);
-router.route('/reviews/:id/reply').patch(protect, authorize('admin'), replyReview);
-router.route('/reviews/:id').delete(protect, authorize('admin'), deleteReview);
+router.route('/reviews').get(getAdminReviews);
+router.route('/reviews/:id/toggle-approval').patch(toggleReviewApproval);
+router.route('/reviews/:id/reply').patch(replyReview);
+router.route('/reviews/:id').delete(deleteReview);
 
 // Testimonials routes
 const { 
