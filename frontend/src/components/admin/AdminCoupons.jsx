@@ -12,14 +12,16 @@ const AdminCoupons = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Form State
-    const [form, setForm] = useState({
+    const emptyForm = {
         code: '',
         discountType: 'percentage',
         discountValue: '',
         isActive: true,
         usageLimit: '',
+        startDate: new Date().toISOString().split('T')[0],
         expiryDate: ''
-    });
+    };
+    const [form, setForm] = useState({ ...emptyForm });
 
     const fetchCoupons = useCallback(async () => {
         try {
@@ -70,6 +72,7 @@ const AdminCoupons = () => {
             discountValue: c.discountValue,
             isActive: c.isActive,
             usageLimit: c.usageLimit || '',
+            startDate: c.startDate ? new Date(c.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             expiryDate: new Date(c.expiryDate).toISOString().split('T')[0]
         });
         setIsAdding(true);
@@ -77,6 +80,12 @@ const AdminCoupons = () => {
 
     const handleAdd = async (e) => {
         e.preventDefault();
+
+        if (form.startDate && form.expiryDate && form.startDate > form.expiryDate) {
+            alert('Start date must be before the expiry date.');
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             const payload = { ...form };
@@ -90,7 +99,7 @@ const AdminCoupons = () => {
             fetchCoupons();
             setIsAdding(false);
             setEditingCoupon(null);
-            setForm({ code: '', discountType: 'percentage', discountValue: '', isActive: true, usageLimit: '', expiryDate: '' });
+            setForm({ ...emptyForm });
         } catch (err) {
             alert(err.response?.data?.message || "Failed to save coupon");
         } finally {
@@ -110,7 +119,7 @@ const AdminCoupons = () => {
                             </div>
                             <div className="flex items-center gap-2">
                                 <button
-                                    onClick={() => { setEditingCoupon(null); setForm({ code: '', discountType: 'percentage', discountValue: '', isActive: true, usageLimit: '', expiryDate: '' }); setIsAdding(true); }}
+                                    onClick={() => { setEditingCoupon(null); setForm({ ...emptyForm }); setIsAdding(true); }}
                                     className="flex items-center gap-1.5 px-3 py-1.5 bg-[#054425] text-white rounded-lg text-[12px] font-medium shadow-sm hover:bg-[#04331c] transition-colors"
                                 >
                                     <Plus size={14} /> Create Coupon
@@ -126,6 +135,7 @@ const AdminCoupons = () => {
                                             <th className="px-4 py-3 font-semibold">Code</th>
                                             <th className="px-4 py-3 font-semibold">Discount</th>
                                             <th className="px-4 py-3 font-semibold">Usage</th>
+                                            <th className="px-4 py-3 font-semibold">Start Date</th>
                                             <th className="px-4 py-3 font-semibold">Expiry Date</th>
                                             <th className="px-4 py-3 font-semibold">Status</th>
                                             <th className="px-4 py-3 font-semibold text-right">Actions</th>
@@ -133,7 +143,7 @@ const AdminCoupons = () => {
                                     </thead>
                                     <tbody className="text-[12px] text-gray-800">
                                         {loading ? (
-                                            <tr><td colSpan="6" className="px-4 py-10 text-center text-gray-400 font-medium">Loading coupons...</td></tr>
+                                            <tr><td colSpan="7" className="px-4 py-10 text-center text-gray-400 font-medium">Loading coupons...</td></tr>
                                         ) : coupons.length > 0 ? (
                                             coupons.map((c) => (
                                                 <tr key={c._id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
@@ -148,6 +158,9 @@ const AdminCoupons = () => {
                                                     </td>
                                                     <td className="px-4 py-2.5 text-gray-600 font-medium">
                                                         {c.usedCount} <span className="text-gray-400">/ {c.usageLimit || '∞'}</span>
+                                                    </td>
+                                                    <td className="px-4 py-2.5 text-gray-500 font-medium">
+                                                        {c.startDate ? new Date(c.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                                                     </td>
                                                     <td className="px-4 py-2.5 text-gray-500 font-medium">
                                                         {new Date(c.expiryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -170,7 +183,7 @@ const AdminCoupons = () => {
                                                 </tr>
                                             ))
                                         ) : (
-                                            <tr><td colSpan="6" className="px-4 py-10 text-center text-gray-400 font-medium">No coupons found</td></tr>
+                                            <tr><td colSpan="7" className="px-4 py-10 text-center text-gray-400 font-medium">No coupons found</td></tr>
                                         )}
                                     </tbody>
                                 </table>
@@ -210,10 +223,30 @@ const AdminCoupons = () => {
                                 </div>
                             </div>
 
+                            <div className="space-y-1.5">
+                                <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Usage Limit (number of times this code can be used)</label>
+                                <input
+                                    type="number"
+                                    placeholder="Leave empty for unlimited uses"
+                                    className="w-full border border-gray-200 p-2.5 rounded-lg text-sm text-gray-800 outline-none focus:border-[#054425] focus:ring-1 focus:ring-[#054425] transition-all"
+                                    value={form.usageLimit}
+                                    onChange={(e) => setForm({ ...form, usageLimit: e.target.value })}
+                                    min="1"
+                                    max="1000000"
+                                    step="1"
+                                />
+                            </div>
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Usage Limit</label>
-                                    <input type="number" placeholder="Leave empty for unlimited" className="w-full border border-gray-200 p-2.5 rounded-lg text-sm text-gray-800 outline-none focus:border-[#054425] focus:ring-1 focus:ring-[#054425] transition-all" value={form.usageLimit} onChange={(e) => setForm({ ...form, usageLimit: e.target.value })} min="1" />
+                                    <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Start Date</label>
+                                    <input
+                                        type="date"
+                                        className="w-full border border-gray-200 p-2.5 rounded-lg text-sm text-gray-800 outline-none focus:border-[#054425] focus:ring-1 focus:ring-[#054425] transition-all"
+                                        value={form.startDate}
+                                        onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                                        required
+                                    />
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">Expiry Date</label>
@@ -223,7 +256,7 @@ const AdminCoupons = () => {
                                         value={form.expiryDate}
                                         onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
                                         required
-                                        min={new Date().toISOString().split('T')[0]}
+                                        min={form.startDate || new Date().toISOString().split('T')[0]}
                                     />
                                 </div>
                             </div>

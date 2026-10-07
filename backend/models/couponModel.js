@@ -21,10 +21,16 @@ const couponSchema = new mongoose.Schema({
     usageLimit: {
         type: Number,
         default: null, // null means unlimited
+        min: [1, 'Usage limit must be at least 1'],
+        max: [1000000, 'Usage limit is too large'],
     },
     usedCount: {
         type: Number,
         default: 0,
+    },
+    startDate: {
+        type: Date,
+        default: Date.now,
     },
     expiryDate: {
         type: Date,

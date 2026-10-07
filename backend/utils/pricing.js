@@ -16,6 +16,7 @@ const unitPriceFromProduct = (product, size) => {
 
 const isCouponValid = (coupon) => {
   if (!coupon || !coupon.isActive) return false;
+  if (coupon.startDate && new Date(coupon.startDate) > new Date()) return false;
   if (coupon.expiryDate && new Date(coupon.expiryDate) < new Date()) return false;
   if (coupon.usageLimit != null && coupon.usedCount >= coupon.usageLimit) return false;
   return true;

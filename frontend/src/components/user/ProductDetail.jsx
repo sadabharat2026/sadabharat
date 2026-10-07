@@ -691,7 +691,7 @@ const ProductDetail = () => {
               </div>
 
               {/* Size Selector */}
-              {variants.length > 0 && (
+              {variants.length > 1 && (
                 <div className="space-y-2 pt-2">
                   <h3 className="text-[13px] font-sans font-bold text-gray-900">Select Unit</h3>
                   <div className="flex flex-wrap gap-3">

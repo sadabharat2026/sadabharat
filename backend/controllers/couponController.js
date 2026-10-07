@@ -3,6 +3,7 @@ const { invalidateCatalog } = require('../utils/cache');
 
 const isCouponCurrentlyValid = (coupon) => {
     if (!coupon.isActive) return false;
+    if (coupon.startDate && new Date(coupon.startDate) > new Date()) return false;
     if (coupon.expiryDate && new Date(coupon.expiryDate) < new Date()) return false;
     if (coupon.usageLimit != null && coupon.usedCount >= coupon.usageLimit) return false;
     return true;
@@ -67,6 +68,9 @@ const validateCoupon = async (req, res) => {
         if (!coupon.isActive) {
             return res.status(400).json({ status: 'fail', message: 'This coupon is inactive' });
         }
+        if (coupon.startDate && new Date(coupon.startDate) > new Date()) {
+            return res.status(400).json({ status: 'fail', message: 'This coupon is not active yet' });
+        }
         if (coupon.expiryDate && new Date(coupon.expiryDate) < new Date()) {
             return res.status(400).json({ status: 'fail', message: 'This coupon has expired' });
         }
@@ -83,16 +87,28 @@ const validateCoupon = async (req, res) => {
     }
 };
 
+const validateDateRange = (startDate, expiryDate) => {
+    if (startDate && expiryDate && new Date(startDate) > new Date(expiryDate)) {
+        return 'Start date must be before the expiry date';
+    }
+    return null;
+};
+
 // @desc    Create a coupon
 // @route   POST /api/coupons
 // @access  Admin
 const createCoupon = async (req, res) => {
     try {
-        const { code, discountType, discountValue, usageLimit, expiryDate } = req.body;
+        const { code, discountType, discountValue, usageLimit, startDate, expiryDate } = req.body;
 
         const couponExists = await Coupon.findOne({ code: code.toUpperCase() });
         if (couponExists) {
             return res.status(400).json({ status: 'fail', message: 'Coupon code already exists' });
+        }
+
+        const dateError = validateDateRange(startDate, expiryDate);
+        if (dateError) {
+            return res.status(400).json({ status: 'fail', message: dateError });
         }
 
         const coupon = await Coupon.create({
@@ -100,6 +116,7 @@ const createCoupon = async (req, res) => {
             discountType,
             discountValue,
             usageLimit: usageLimit || null,
+            startDate: startDate || undefined,
             expiryDate
         });
 
@@ -120,6 +137,18 @@ const createCoupon = async (req, res) => {
 // @access  Admin
 const updateCoupon = async (req, res) => {
     try {
+        const existing = await Coupon.findById(req.params.id);
+        if (!existing) {
+            return res.status(404).json({ status: 'fail', message: 'Coupon not found' });
+        }
+
+        const nextStartDate = req.body.startDate !== undefined ? req.body.startDate : existing.startDate;
+        const nextExpiryDate = req.body.expiryDate !== undefined ? req.body.expiryDate : existing.expiryDate;
+        const dateError = validateDateRange(nextStartDate, nextExpiryDate);
+        if (dateError) {
+            return res.status(400).json({ status: 'fail', message: dateError });
+        }
+
         const coupon = await Coupon.findByIdAndUpdate(
             req.params.id,
             req.body,

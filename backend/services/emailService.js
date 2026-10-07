@@ -36,9 +36,9 @@ const buildOtpEmailHtml = ({ otp, purpose, name }) => {
         : 'Verify your vendor email';
   const intro =
     purpose === 'vendor_reset'
-      ? 'Use the OTP below to reset your Sada Bharat seller account password.'
+      ? 'Use the OTP below to reset your Sada Bharat Ayurvedic seller account password.'
       : purpose === 'vendor_login'
-        ? 'Use the OTP below to sign in to your Sada Bharat seller dashboard.'
+        ? 'Use the OTP below to sign in to your Sada Bharat Ayurvedic seller dashboard.'
         : 'Use the OTP below to verify your email and continue vendor registration.';
   const greet = name ? `Hi ${name},` : 'Hello,';
 
@@ -52,8 +52,8 @@ const buildOtpEmailHtml = ({ otp, purpose, name }) => {
         <table role="presentation" width="100%" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(5,68,37,0.08);">
           <tr>
             <td style="background:#054425;padding:28px 24px;text-align:center;">
-              <div style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:1px;">SADA BHARAT</div>
-              <div style="color:#CFA767;font-size:11px;font-weight:600;letter-spacing:2px;margin-top:6px;">AYURVEDIC · SELLER PORTAL</div>
+              <div style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:1px;">SADA BHARAT AYURVEDIC</div>
+              <div style="color:#CFA767;font-size:11px;font-weight:600;letter-spacing:2px;margin-top:6px;">SELLER PORTAL</div>
             </td>
           </tr>
           <tr>
@@ -101,10 +101,10 @@ const sendOtpEmail = async ({ to, otp, purpose, name }) => {
 
   const subject =
     purpose === 'vendor_reset'
-      ? `${otp} is your Sada Bharat password reset OTP`
+      ? `${otp} is your Sada Bharat Ayurvedic password reset OTP`
       : purpose === 'vendor_login'
-        ? `${otp} is your Sada Bharat seller login OTP`
-        : `${otp} is your Sada Bharat vendor verification OTP`;
+        ? `${otp} is your Sada Bharat Ayurvedic seller login OTP`
+        : `${otp} is your Sada Bharat Ayurvedic vendor verification OTP`;
 
   const html = buildOtpEmailHtml({ otp, purpose, name });
   const text = buildOtpEmailText({ otp, purpose });

@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { 
-  getProducts, 
+const {
+  getProducts,
+  getProductById,
   createProduct,
   getVendorProducts,
   getAdminProducts,
@@ -26,5 +27,8 @@ router.get('/vendor', protect, authorize('vendor'), getVendorProducts);
 // Admin specific
 router.get('/admin', protect, authorize('admin'), getAdminProducts);
 router.put('/:id/status', protect, authorize('admin'), updateProductStatus);
+
+// Public route for a single approved product (placed after the literal routes above)
+router.get('/:id', cachePublic('product', 45), getProductById);
 
 module.exports = router;

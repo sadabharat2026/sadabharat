@@ -76,6 +76,25 @@ const getProducts = async (req, res) => {
   }
 };
 
+// @desc    Get a single approved product by id (Public)
+// @route   GET /api/products/:id
+// @access  Public
+const getProductById = async (req, res) => {
+  try {
+    const product = await Product.findOne({ _id: req.params.id, status: 'approved' })
+      .populate('vendor', 'storeName fullName')
+      .populate('admin', 'name')
+      .lean();
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+    const productWithStock = await injectStock(product);
+    res.status(200).json({ success: true, data: productWithStock });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // @desc    Create a product
 // @route   POST /api/products
 // @access  Private (Vendor/Admin)
@@ -294,6 +313,7 @@ const deleteProduct = async (req, res) => {
 
 module.exports = {
   getProducts,
+  getProductById,
   createProduct,
   getVendorProducts,
   getAdminProducts,

@@ -7,8 +7,9 @@ export const normalizeSize = (size) => {
 
 export const getProductVariants = (product) => {
   if (!product) return [];
-  if (Array.isArray(product.variants) && product.variants.length > 0) {
-    return product.variants;
+  if (product.hasVariants && Array.isArray(product.variants)) {
+    const usable = product.variants.filter((v) => v && v.size);
+    if (usable.length > 0) return usable;
   }
   if (product.packSize) {
     return [{ size: product.packSize, price: product.price, oldPrice: product.oldPrice }];
