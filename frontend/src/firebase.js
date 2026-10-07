@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { getDatabase } from 'firebase/database';
+import { getAuth, signInWithCustomToken } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBCbd4bNuYJ3XXdZleyBzlMIA-M1YIsXFc",
@@ -17,5 +18,29 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 const db = getDatabase(app);
+const auth = getAuth(app);
 
-export { messaging, getToken, onMessage, db };
+// The chat feature (Realtime Database) requires a signed-in Firebase user —
+// our own backend issues a custom token for the already-logged-in app user.
+// This is cached per tab so repeated chat opens don't re-fetch a token.
+let firebaseAuthPromise = null;
+const ensureFirebaseAuth = async () => {
+  if (auth.currentUser) return auth.currentUser;
+  if (!firebaseAuthPromise) {
+    firebaseAuthPromise = (async () => {
+      const apiModule = await import('./utils/api');
+      const api = apiModule.default;
+      const res = await api.get('/firebase/custom-token');
+      const token = res.data?.data?.token;
+      if (!token) throw new Error('No Firebase token returned');
+      const cred = await signInWithCustomToken(auth, token);
+      return cred.user;
+    })().catch((err) => {
+      firebaseAuthPromise = null; // allow retry on next call
+      throw err;
+    });
+  }
+  return firebaseAuthPromise;
+};
+
+export { messaging, getToken, onMessage, db, auth, ensureFirebaseAuth };

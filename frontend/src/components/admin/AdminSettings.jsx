@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiUser, FiMail, FiLock, FiSave, FiLogOut, FiPhone } from 'react-icons/fi';
+import { FiUser, FiMail, FiLock, FiSave, FiLogOut, FiPhone, FiEye, FiEyeOff } from 'react-icons/fi';
 import { useShop } from '../../context/ShopContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
@@ -16,6 +16,8 @@ const AdminSettings = () => {
   const [passwordForm, setPasswordForm] = useState({ current: '', new: '', confirm: '' });
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState({ current: false, new: false, confirm: false });
+  const toggleShowPassword = (field) => setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }));
 
   useEffect(() => {
     if (!user) return;
@@ -131,36 +133,51 @@ const AdminSettings = () => {
         </h2>
         <label className="space-y-1 block">
           <span className="text-[10px] font-bold uppercase text-gray-400">Current password</span>
-          <input
-            type="password"
-            required
-            value={passwordForm.current}
-            onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
-            className="w-full bg-gray-50 border border-gray-100 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-admin-dark"
-          />
+          <div className="relative">
+            <input
+              type={showPassword.current ? 'text' : 'password'}
+              required
+              value={passwordForm.current}
+              onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
+              className="w-full bg-gray-50 border border-gray-100 rounded-lg px-3 py-2.5 pr-10 text-sm outline-none focus:border-admin-dark"
+            />
+            <button type="button" onClick={() => toggleShowPassword('current')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600" tabIndex={-1}>
+              {showPassword.current ? <FiEyeOff size={15} /> : <FiEye size={15} />}
+            </button>
+          </div>
         </label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <label className="space-y-1">
             <span className="text-[10px] font-bold uppercase text-gray-400">New password</span>
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={passwordForm.new}
-              onChange={(e) => setPasswordForm({ ...passwordForm, new: e.target.value })}
-              className="w-full bg-gray-50 border border-gray-100 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-admin-dark"
-            />
+            <div className="relative">
+              <input
+                type={showPassword.new ? 'text' : 'password'}
+                required
+                minLength={6}
+                value={passwordForm.new}
+                onChange={(e) => setPasswordForm({ ...passwordForm, new: e.target.value })}
+                className="w-full bg-gray-50 border border-gray-100 rounded-lg px-3 py-2.5 pr-10 text-sm outline-none focus:border-admin-dark"
+              />
+              <button type="button" onClick={() => toggleShowPassword('new')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600" tabIndex={-1}>
+                {showPassword.new ? <FiEyeOff size={15} /> : <FiEye size={15} />}
+              </button>
+            </div>
           </label>
           <label className="space-y-1">
             <span className="text-[10px] font-bold uppercase text-gray-400">Confirm new password</span>
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={passwordForm.confirm}
-              onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
-              className="w-full bg-gray-50 border border-gray-100 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-admin-dark"
-            />
+            <div className="relative">
+              <input
+                type={showPassword.confirm ? 'text' : 'password'}
+                required
+                minLength={6}
+                value={passwordForm.confirm}
+                onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+                className="w-full bg-gray-50 border border-gray-100 rounded-lg px-3 py-2.5 pr-10 text-sm outline-none focus:border-admin-dark"
+              />
+              <button type="button" onClick={() => toggleShowPassword('confirm')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600" tabIndex={-1}>
+                {showPassword.confirm ? <FiEyeOff size={15} /> : <FiEye size={15} />}
+              </button>
+            </div>
           </label>
         </div>
         <div className="flex justify-end">

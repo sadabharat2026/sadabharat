@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useShop } from '../../context/ShopContext';
-import { FiLock, FiMail, FiArrowRight } from 'react-icons/fi';
+import { FiLock, FiMail, FiArrowRight, FiEye, FiEyeOff } from 'react-icons/fi';
 import { registerFCMToken } from '../../services/pushNotificationService';
 
 import api from '../../utils/api';
@@ -10,6 +10,7 @@ const AdminLogin = () => {
   const [form, setForm] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { isAuthenticated, user, setUser, setIsAuthenticated } = useShop();
 
@@ -125,13 +126,21 @@ const AdminLogin = () => {
                   <FiLock className="text-gray-400" />
                 </div>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={form.password}
                   onChange={handleChange}
-                  className={`w-full bg-gray-50 border ${errors.password ? 'border-red-300' : 'border-gray-200'} focus:border-[#054425] focus:bg-white rounded-xl pl-11 pr-4 py-3.5 text-sm text-gray-800 outline-none transition-all shadow-sm`}
+                  className={`w-full bg-gray-50 border ${errors.password ? 'border-red-300' : 'border-gray-200'} focus:border-[#054425] focus:bg-white rounded-xl pl-11 pr-11 py-3.5 text-sm text-gray-800 outline-none transition-all shadow-sm`}
                   placeholder="••••••••"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                </button>
               </div>
               {errors.password && <p className="mt-1 text-[10px] text-red-500 font-bold">{errors.password}</p>}
             </div>

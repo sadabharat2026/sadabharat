@@ -70,6 +70,8 @@ const policyRoutes = require('./routes/policyRoutes');
 app.use('/api/policies', policyRoutes);
 const reviewRoutes = require('./routes/reviewRoutes');
 app.use('/api/reviews', reviewRoutes);
+const firebaseRoutes = require('./routes/firebaseRoutes');
+app.use('/api/firebase', firebaseRoutes);
 
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

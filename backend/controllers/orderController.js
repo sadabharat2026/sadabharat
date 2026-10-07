@@ -1,11 +1,67 @@
 const Order = require('../models/orderModel');
 const Coupon = require('../models/couponModel');
 const Inventory = require('../models/inventoryModel');
+const User = require('../models/userModel');
+const Vendor = require('../models/vendorModel');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const { sendNotificationToUser } = require('../utils/pushNotificationHelper');
 const { processShippingOrder } = require('./shipping.controller');
 const { computeOrderQuote } = require('../utils/pricing');
+const {
+  sendOrderConfirmationEmail,
+  sendAdminNewOrderEmail,
+  sendVendorNewOrderEmail,
+  sendOrderStatusUpdateEmail,
+} = require('../services/emailService');
+
+// Prefers the email/name entered at checkout; falls back to the account on file.
+const resolveCustomerContact = async (order) => {
+  let email = order.shippingAddress?.email;
+  let name = order.shippingAddress?.name || '';
+  if (!email) {
+    const account = await User.findById(order.user).select('email name').lean();
+    email = account?.email;
+    name = name || account?.name || '';
+  }
+  return { email, name };
+};
+
+// Fire-and-forget: sends order-placed emails to customer, admin, and each
+// vendor represented in the order. Never throws — a failed email must not
+// block order creation.
+const sendOrderPlacedEmails = async (order) => {
+  try {
+    const { email: customerEmail, name: customerName } = await resolveCustomerContact(order);
+    if (customerEmail) {
+      await sendOrderConfirmationEmail({
+        to: customerEmail,
+        name: customerName,
+        order,
+      });
+    }
+
+    const adminEmail = process.env.ADMIN_NOTIFY_EMAIL;
+    if (adminEmail) {
+      await sendAdminNewOrderEmail({ to: adminEmail, order });
+    }
+
+    const vendorIds = [...new Set(order.orderItems.map((item) => item.vendor?.toString()).filter(Boolean))];
+    for (const vendorId of vendorIds) {
+      const vendor = await Vendor.findById(vendorId).select('email storeName fullName').lean();
+      if (!vendor?.email) continue;
+      const vendorItems = order.orderItems.filter((item) => item.vendor?.toString() === vendorId);
+      await sendVendorNewOrderEmail({
+        to: vendor.email,
+        vendorName: vendor.storeName || vendor.fullName,
+        order,
+        items: vendorItems,
+      });
+    }
+  } catch (err) {
+    console.error('Error sending order-placed emails:', err.message);
+  }
+};
 
 const quoteItemsPayload = (items = []) => items.map((item) => ({
   product: item.product || item._id,
@@ -159,6 +215,8 @@ const createOrder = async (req, res) => {
       console.error('FCM: Error sending order creation notifications:', notifErr);
     }
 
+    sendOrderPlacedEmails(createdOrder);
+
     processShippingOrder(createdOrder._id).catch((err) => {
       console.error('Failed to process shipping for COD order:', err.message);
     });
@@ -289,6 +347,8 @@ const verifyRazorpayOrder = async (req, res) => {
     } catch (notifErr) {
       console.error('FCM: Error sending Razorpay order notifications:', notifErr);
     }
+
+    sendOrderPlacedEmails(createdOrder);
 
     processShippingOrder(createdOrder._id).catch((err) => {
       console.error('Failed to process shipping for online order:', err.message);
@@ -444,6 +504,15 @@ const updateOrderItemStatus = async (req, res) => {
       );
     } catch (notifErr) {
       console.error('FCM: Error sending order item status notification:', notifErr);
+    }
+
+    if (status) {
+      resolveCustomerContact(order)
+        .then(({ email, name }) => {
+          if (!email) return;
+          return sendOrderStatusUpdateEmail({ to: email, name, order, item, status });
+        })
+        .catch((err) => console.error('Error sending order status update email:', err.message));
     }
 
     res.status(200).json({ success: true, message: 'Item status updated', data: order });

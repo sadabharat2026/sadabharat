@@ -145,8 +145,190 @@ const sendOtpEmail = async ({ to, otp, purpose, name }) => {
   }
 };
 
+// ---------- Generic email sender (used by order emails below) ----------
+
+const sendRawEmail = async ({ to, subject, html, text, logLabel }) => {
+  const email = trim(to).toLowerCase();
+  if (!email) return { success: false, message: 'Email is required' };
+
+  const mockMode = process.env.SMTP_MOCK === 'true' || !isSmtpConfigured();
+
+  if (mockMode) {
+    console.log(`[MOCK EMAIL] To: ${email} | ${logLabel || subject}`);
+    return { success: true, message: 'Email not sent (mock / SMTP not configured)', mock: true };
+  }
+
+  try {
+    const transporter = createTransport();
+    const fromAddress =
+      trim(process.env.SMTP_FROM) || `"${brandName()}" <${trim(process.env.SMTP_USER)}>`;
+
+    await transporter.sendMail({ from: fromAddress, to: email, subject, text, html });
+    return { success: true, message: 'Email sent' };
+  } catch (error) {
+    console.error(`SMTP send failed (${logLabel || subject}):`, error.message);
+    return { success: false, message: error.message || 'Failed to send email' };
+  }
+};
+
+// ---------- Order emails ----------
+
+const formatMoney = (n) => `Rs. ${Number(n || 0).toLocaleString('en-IN')}`;
+
+const orderShortId = (order) => String(order._id).slice(-8).toUpperCase();
+
+const buildOrderItemsRows = (items = []) =>
+  items
+    .map(
+      (it) => `
+    <tr>
+      <td style="padding:10px 8px;border-bottom:1px solid #f3f4f6;color:#1f2937;font-size:13px;">${it.name}${it.size ? ` (${it.size})` : ''}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:13px;text-align:center;">${it.qty}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #f3f4f6;color:#1f2937;font-size:13px;text-align:right;">${formatMoney(it.lineTotal != null ? it.lineTotal : it.price * it.qty)}</td>
+    </tr>`
+    )
+    .join('');
+
+const buildOrderEmailHtml = ({ heading, intro, order, items, showTotal = true }) => {
+  const address = order.shippingAddress || {};
+  const addressLine = [address.address, address.city, address.postalCode, address.country]
+    .filter(Boolean)
+    .join(', ');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="margin:0;padding:0;background:#F4F1E1;font-family:Poppins,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#F4F1E1;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(5,68,37,0.08);">
+          <tr>
+            <td style="background:#054425;padding:28px 24px;text-align:center;">
+              <div style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:1px;">SADA BHARAT AYURVEDIC</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px 28px;">
+              <p style="margin:0 0 4px;color:#054425;font-size:18px;font-weight:700;">${heading}</p>
+              <p style="margin:0 0 20px;color:#9ca3af;font-size:11px;font-weight:600;letter-spacing:0.5px;">ORDER #${orderShortId(order)}</p>
+              <p style="margin:0 0 20px;color:#374151;font-size:13px;line-height:1.6;">${intro}</p>
+
+              <table role="presentation" width="100%" style="border-collapse:collapse;margin-bottom:16px;">
+                <thead>
+                  <tr>
+                    <th style="text-align:left;padding:8px;font-size:10px;text-transform:uppercase;color:#9ca3af;border-bottom:2px solid #054425;">Item</th>
+                    <th style="text-align:center;padding:8px;font-size:10px;text-transform:uppercase;color:#9ca3af;border-bottom:2px solid #054425;">Qty</th>
+                    <th style="text-align:right;padding:8px;font-size:10px;text-transform:uppercase;color:#9ca3af;border-bottom:2px solid #054425;">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>${buildOrderItemsRows(items)}</tbody>
+              </table>
+
+              ${showTotal ? `<p style="margin:0 0 20px;text-align:right;color:#054425;font-size:15px;font-weight:700;">Order Total: ${formatMoney(order.totalPrice)}</p>` : ''}
+
+              ${addressLine ? `
+              <div style="background:#F4F1E1;border-radius:10px;padding:14px 16px;margin-bottom:8px;">
+                <p style="margin:0 0 4px;color:#6b7280;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Delivery Address</p>
+                <p style="margin:0;color:#374151;font-size:12px;line-height:1.5;">${addressLine}</p>
+              </div>` : ''}
+
+              <p style="margin:16px 0 0;color:#9ca3af;font-size:11px;line-height:1.5;">Payment method: ${order.paymentMethod || 'N/A'}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#fafafa;padding:16px 28px;text-align:center;border-top:1px solid #f3f4f6;">
+              <p style="margin:0;color:#9ca3af;font-size:11px;">© ${new Date().getFullYear()} ${brandName()}. All rights reserved.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+};
+
+const sendOrderConfirmationEmail = async ({ to, name, order }) => {
+  if (!to) return { success: false, message: 'No customer email on file' };
+  const html = buildOrderEmailHtml({
+    heading: 'Order Confirmed',
+    intro: `Hi ${name || 'there'}, thank you for shopping with us! Your order has been placed successfully and is now being processed.`,
+    order,
+    items: order.orderItems,
+  });
+  const text = `Order #${orderShortId(order)} confirmed. Total: ${formatMoney(order.totalPrice)}.`;
+  return sendRawEmail({
+    to,
+    subject: `Order Confirmed — #${orderShortId(order)}`,
+    html,
+    text,
+    logLabel: 'order-confirmation',
+  });
+};
+
+const sendAdminNewOrderEmail = async ({ to, order }) => {
+  if (!to) return { success: false, message: 'No admin email configured' };
+  const html = buildOrderEmailHtml({
+    heading: 'New Order Received',
+    intro: 'A new order has just been placed on Sada Bharat Ayurvedic.',
+    order,
+    items: order.orderItems,
+  });
+  const text = `New order #${orderShortId(order)}. Total: ${formatMoney(order.totalPrice)}.`;
+  return sendRawEmail({
+    to,
+    subject: `New Order — #${orderShortId(order)}`,
+    html,
+    text,
+    logLabel: 'admin-new-order',
+  });
+};
+
+const sendVendorNewOrderEmail = async ({ to, vendorName, order, items }) => {
+  if (!to) return { success: false, message: 'No vendor email on file' };
+  const html = buildOrderEmailHtml({
+    heading: 'New Order For Your Products',
+    intro: `Hi ${vendorName || 'Seller'}, you've received a new order containing your product(s). Please prepare them for shipping.`,
+    order,
+    items,
+    showTotal: false,
+  });
+  const text = `New order #${orderShortId(order)} includes your product(s).`;
+  return sendRawEmail({
+    to,
+    subject: `New Order For Your Products — #${orderShortId(order)}`,
+    html,
+    text,
+    logLabel: 'vendor-new-order',
+  });
+};
+
+const sendOrderStatusUpdateEmail = async ({ to, name, order, item, status }) => {
+  if (!to) return { success: false, message: 'No customer email on file' };
+  const html = buildOrderEmailHtml({
+    heading: `Order Update: ${status}`,
+    intro: `Hi ${name || 'there'}, the status of "${item.name}" from your order has been updated to "${status}".${item.trackingNumber ? ` Tracking number: <strong>${item.trackingNumber}</strong>.` : ''}`,
+    order,
+    items: [item],
+    showTotal: false,
+  });
+  const text = `Your item "${item.name}" from order #${orderShortId(order)} is now "${status}".`;
+  return sendRawEmail({
+    to,
+    subject: `Order Update: ${status} — #${orderShortId(order)}`,
+    html,
+    text,
+    logLabel: 'order-status-update',
+  });
+};
+
 module.exports = {
   sendOtpEmail,
   isSmtpConfigured,
   buildOtpEmailHtml,
+  sendOrderConfirmationEmail,
+  sendAdminNewOrderEmail,
+  sendVendorNewOrderEmail,
+  sendOrderStatusUpdateEmail,
 };

@@ -68,4 +68,8 @@ async function sendPushNotification(tokens, payload) {
   }
 }
 
-module.exports = { sendPushNotification };
+function getFirebaseAdminApp() {
+  return firebaseApp;
+}
+
+module.exports = { sendPushNotification, getFirebaseAdminApp };

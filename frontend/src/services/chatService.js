@@ -1,4 +1,4 @@
-import { db } from '../firebase';
+import { db, ensureFirebaseAuth } from '../firebase';
 import {
   ref,
   push,
@@ -26,6 +26,7 @@ export const getConversationId = {
 // Get or create a conversation node in RTDB
 // ──────────────────────────────────────────────
 export async function getOrCreateConversation(conversationId, metadata) {
+  await ensureFirebaseAuth();
   const convRef = ref(db, `chats/${conversationId}/metadata`);
   const snapshot = await get(convRef);
 
@@ -46,6 +47,7 @@ export async function getOrCreateConversation(conversationId, metadata) {
 // Send a message to a conversation
 // ──────────────────────────────────────────────
 export async function sendMessage(conversationId, { senderId, senderRole, senderName, text, imageUrl }) {
+  await ensureFirebaseAuth();
   const messagesRef = ref(db, `chats/${conversationId}/messages`);
   const metaRef = ref(db, `chats/${conversationId}/metadata`);
 
@@ -113,24 +115,33 @@ export async function sendMessage(conversationId, { senderId, senderRole, sender
 // ──────────────────────────────────────────────
 export function subscribeToMessages(conversationId, callback) {
   const messagesRef = ref(db, `chats/${conversationId}/messages`);
+  let cancelled = false;
 
-  onValue(messagesRef, (snapshot) => {
-    const data = snapshot.val();
-    if (!data) {
-      callback([]);
-      return;
-    }
-    const messages = Object.entries(data).map(([key, value]) => ({
-      id: key,
-      ...value,
-    }));
-    // Sort by timestamp ascending
-    messages.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-    callback(messages);
-  });
+  ensureFirebaseAuth()
+    .then(() => {
+      if (cancelled) return;
+      onValue(messagesRef, (snapshot) => {
+        const data = snapshot.val();
+        if (!data) {
+          callback([]);
+          return;
+        }
+        const messages = Object.entries(data).map(([key, value]) => ({
+          id: key,
+          ...value,
+        }));
+        // Sort by timestamp ascending
+        messages.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        callback(messages);
+      });
+    })
+    .catch((err) => console.error('subscribeToMessages: Firebase auth failed', err));
 
   // Return unsubscribe function
-  return () => off(messagesRef);
+  return () => {
+    cancelled = true;
+    off(messagesRef);
+  };
 }
 
 // ──────────────────────────────────────────────
@@ -139,10 +150,21 @@ export function subscribeToMessages(conversationId, callback) {
 // ──────────────────────────────────────────────
 export function subscribeToConversation(conversationId, callback) {
   const metaRef = ref(db, `chats/${conversationId}/metadata`);
-  onValue(metaRef, (snapshot) => {
-    callback(snapshot.val());
-  });
-  return () => off(metaRef);
+  let cancelled = false;
+
+  ensureFirebaseAuth()
+    .then(() => {
+      if (cancelled) return;
+      onValue(metaRef, (snapshot) => {
+        callback(snapshot.val());
+      });
+    })
+    .catch((err) => console.error('subscribeToConversation: Firebase auth failed', err));
+
+  return () => {
+    cancelled = true;
+    off(metaRef);
+  };
 }
 
 // ──────────────────────────────────────────────
@@ -152,33 +174,43 @@ export function subscribeToConversation(conversationId, callback) {
 // ──────────────────────────────────────────────
 export function subscribeToInbox(filterPrefix, callback) {
   const chatsRef = ref(db, 'chats');
+  let cancelled = false;
 
-  onValue(chatsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (!data) {
-      callback([]);
-      return;
-    }
+  ensureFirebaseAuth()
+    .then(() => {
+      if (cancelled) return;
+      onValue(chatsRef, (snapshot) => {
+        const data = snapshot.val();
+        if (!data) {
+          callback([]);
+          return;
+        }
 
-    const conversations = Object.entries(data)
-      .filter(([key]) => key.startsWith(filterPrefix))
-      .map(([key, value]) => ({
-        id: key,
-        ...value.metadata,
-      }))
-      .filter(Boolean)
-      .sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0));
+        const conversations = Object.entries(data)
+          .filter(([key]) => key.startsWith(filterPrefix))
+          .map(([key, value]) => ({
+            id: key,
+            ...value.metadata,
+          }))
+          .filter(Boolean)
+          .sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0));
 
-    callback(conversations);
-  });
+        callback(conversations);
+      });
+    })
+    .catch((err) => console.error('subscribeToInbox: Firebase auth failed', err));
 
-  return () => off(chatsRef);
+  return () => {
+    cancelled = true;
+    off(chatsRef);
+  };
 }
 
 // ──────────────────────────────────────────────
 // Mark messages as read for a given reader role
 // ──────────────────────────────────────────────
 export async function markAsRead(conversationId, readerRole) {
+  await ensureFirebaseAuth();
   const metaRef = ref(db, `chats/${conversationId}/metadata`);
   await update(metaRef, {
     [`unread_${readerRole}`]: false,
@@ -189,6 +221,7 @@ export async function markAsRead(conversationId, readerRole) {
 // Mark a conversation as resolved
 // ──────────────────────────────────────────────
 export async function resolveConversation(conversationId) {
+  await ensureFirebaseAuth();
   const metaRef = ref(db, `chats/${conversationId}/metadata`);
   await update(metaRef, { status: 'resolved' });
 }
