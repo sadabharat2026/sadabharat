@@ -346,7 +346,7 @@ const AdminProducts = () => {
                   onChange={(e) => setFilter(e.target.value)}
                 >
                   <option>All Categories</option>
-                  {categories.map(c => <option key={c._id} value={c.name}>{c.name}</option>)}
+                  {categories.map(c => <option key={c._id} value={c.title}>{c.title}</option>)}
                 </select>
 
                 <button
@@ -852,7 +852,7 @@ const AdminProducts = () => {
                 >
                   <option>Select Category</option>
                   {categories.map((c) => (
-                    <option key={c._id} value={c.name}>{c.name}</option>
+                    <option key={c._id} value={c.title}>{c.title}</option>
                   ))}
                 </select>
               </div>

@@ -323,6 +323,44 @@ const sendOrderStatusUpdateEmail = async ({ to, name, order, item, status }) => 
   });
 };
 
+const sendAdminOrderStatusUpdateEmail = async ({ to, order, item, status }) => {
+  if (!to) return { success: false, message: 'No admin email configured' };
+  const html = buildOrderEmailHtml({
+    heading: `Order Item Status Changed: ${status}`,
+    intro: `The status of "${item.name}" in order #${orderShortId(order)} has been updated to "${status}".${item.trackingNumber ? ` Tracking number: <strong>${item.trackingNumber}</strong>.` : ''}`,
+    order,
+    items: [item],
+    showTotal: false,
+  });
+  const text = `Order #${orderShortId(order)}: "${item.name}" is now "${status}".`;
+  return sendRawEmail({
+    to,
+    subject: `Order Item Updated: ${status} — #${orderShortId(order)}`,
+    html,
+    text,
+    logLabel: 'admin-order-status-update',
+  });
+};
+
+const sendVendorOrderStatusUpdateEmail = async ({ to, vendorName, order, item, status }) => {
+  if (!to) return { success: false, message: 'No vendor email on file' };
+  const html = buildOrderEmailHtml({
+    heading: `Your Product Status Changed: ${status}`,
+    intro: `Hi ${vendorName || 'Seller'}, the status of "${item.name}" from order #${orderShortId(order)} has been updated to "${status}".${item.trackingNumber ? ` Tracking number: <strong>${item.trackingNumber}</strong>.` : ''}`,
+    order,
+    items: [item],
+    showTotal: false,
+  });
+  const text = `Order #${orderShortId(order)}: your product "${item.name}" is now "${status}".`;
+  return sendRawEmail({
+    to,
+    subject: `Product Status Updated: ${status} — #${orderShortId(order)}`,
+    html,
+    text,
+    logLabel: 'vendor-order-status-update',
+  });
+};
+
 module.exports = {
   sendOtpEmail,
   isSmtpConfigured,
@@ -331,4 +369,6 @@ module.exports = {
   sendAdminNewOrderEmail,
   sendVendorNewOrderEmail,
   sendOrderStatusUpdateEmail,
+  sendAdminOrderStatusUpdateEmail,
+  sendVendorOrderStatusUpdateEmail,
 };

@@ -142,6 +142,8 @@ const VendorAddProduct = () => {
       disclaimer,
       hasVariants,
       variants: processedVariants,
+      stock: hasVariants ? undefined : (parseInt(stock, 10) || 0),
+      sku: hasVariants ? undefined : sku,
       prescriptionRequired,
       noRefund,
       codAvailable,
@@ -535,7 +537,7 @@ const VendorAddProduct = () => {
                 >
                   <option>Select Category</option>
                   {categories.map((c) => (
-                    <option key={c._id} value={c.name}>{c.name}</option>
+                    <option key={c._id} value={c.title}>{c.title}</option>
                   ))}
                 </select>
               </div>

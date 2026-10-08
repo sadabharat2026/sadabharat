@@ -13,6 +13,8 @@ const {
   sendAdminNewOrderEmail,
   sendVendorNewOrderEmail,
   sendOrderStatusUpdateEmail,
+  sendAdminOrderStatusUpdateEmail,
+  sendVendorOrderStatusUpdateEmail,
 } = require('../services/emailService');
 
 // Prefers the email/name entered at checkout; falls back to the account on file.
@@ -25,6 +27,17 @@ const resolveCustomerContact = async (order) => {
     name = name || account?.name || '';
   }
   return { email, name };
+};
+
+// Admin accounts live in the User collection (role: 'admin'). Notifications go
+// to every admin's own email, plus an optional env override for an extra inbox.
+const getAdminEmails = async () => {
+  const admins = await User.find({ role: 'admin', email: { $exists: true, $ne: null } })
+    .select('email')
+    .lean();
+  const emails = admins.map((a) => a.email).filter(Boolean);
+  if (process.env.ADMIN_NOTIFY_EMAIL) emails.push(process.env.ADMIN_NOTIFY_EMAIL);
+  return [...new Set(emails)];
 };
 
 // Fire-and-forget: sends order-placed emails to customer, admin, and each
@@ -41,8 +54,8 @@ const sendOrderPlacedEmails = async (order) => {
       });
     }
 
-    const adminEmail = process.env.ADMIN_NOTIFY_EMAIL;
-    if (adminEmail) {
+    const adminEmails = await getAdminEmails();
+    for (const adminEmail of adminEmails) {
       await sendAdminNewOrderEmail({ to: adminEmail, order });
     }
 
@@ -513,6 +526,27 @@ const updateOrderItemStatus = async (req, res) => {
           return sendOrderStatusUpdateEmail({ to: email, name, order, item, status });
         })
         .catch((err) => console.error('Error sending order status update email:', err.message));
+
+      getAdminEmails()
+        .then((adminEmails) =>
+          Promise.all(adminEmails.map((to) => sendAdminOrderStatusUpdateEmail({ to, order, item, status })))
+        )
+        .catch((err) => console.error('Error sending admin order status update email:', err.message));
+
+      if (item.vendor) {
+        Vendor.findById(item.vendor).select('email storeName fullName').lean()
+          .then((vendor) => {
+            if (!vendor?.email) return;
+            return sendVendorOrderStatusUpdateEmail({
+              to: vendor.email,
+              vendorName: vendor.storeName || vendor.fullName,
+              order,
+              item,
+              status,
+            });
+          })
+          .catch((err) => console.error('Error sending vendor order status update email:', err.message));
+      }
     }
 
     res.status(200).json({ success: true, message: 'Item status updated', data: order });
