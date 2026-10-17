@@ -10,8 +10,24 @@ import api from '../../utils/api';
 const Checkout = () => {
   const { cart, removeFromCart, updateQuantity, cartTotal, cartCount, clearCart, verifyAndClearCart, orderId, user, isAuthenticated, isAuthLoading, settings } = useShop();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Enforce authentication for checkout
+  // A "Buy Now" product arrives only via router state, which does not
+  // survive a forced /login redirect OR a plain page refresh. Stash it in
+  // sessionStorage as soon as it shows up so either case can recover it (see
+  // directProduct below).
+  useEffect(() => {
+    if (location.state?.directProduct) {
+      try {
+        sessionStorage.setItem('sadabharat_buy_now', JSON.stringify({
+          product: location.state.directProduct,
+          savedAt: Date.now(),
+        }));
+      } catch (e) { /* ignore */ }
+    }
+  }, [location.state?.directProduct]);
+
+  // Enforce authentication for checkout.
   useEffect(() => {
     if (!isAuthLoading && !isAuthenticated) {
       navigate('/login', { state: { from: '/checkout' } });
@@ -159,9 +175,27 @@ const Checkout = () => {
     fetchValidCoupons();
   }, []);
 
-  // Router State Payload checks (Promos from Bag)
-  const location = useLocation();
-  const directProduct = location.state?.directProduct || null;
+  // Router State Payload checks (Promos from Bag). Falls back to the
+  // sessionStorage copy saved before a forced /login redirect, since React
+  // Router state does not survive that round trip. Read-and-clear happens in
+  // the same lazy init so it's only consumed once, and never clobbers a
+  // stash the auth-redirect effect above is about to write on this render.
+  const [restoredBuyNow] = useState(() => {
+    if (location.state?.directProduct) return null;
+    try {
+      const saved = sessionStorage.getItem('sadabharat_buy_now');
+      if (!saved) return null;
+      sessionStorage.removeItem('sadabharat_buy_now');
+      const { product, savedAt } = JSON.parse(saved);
+      // Only honor a stash from the last 15 minutes — avoids resurrecting an
+      // abandoned Buy Now attempt into an unrelated later checkout.
+      if (Date.now() - savedAt > 15 * 60 * 1000) return null;
+      return product || null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const directProduct = location.state?.directProduct || restoredBuyNow || null;
   const passedCouponCode = location.state?.couponApplied || null;
 
   // Initialize with passed coupon if any

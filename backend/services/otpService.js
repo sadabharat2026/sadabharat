@@ -12,7 +12,7 @@ const env = (name, fallback = '') => {
  * Template ID: from SMS_INDIA_HUB_TEMPLATE_ID
  */
 const buildOtpMessage = (otp) => {
-  const brand = env('SMS_BRAND_NAME', 'sadabharat');
+  const brand = env('SMS_BRAND_NAME', 'Sadabharat Ayurvedic');
   const senderId = env('SMS_INDIA_HUB_SENDER_ID', 'BGADEC');
   // Exact registered template text — only replace ##var## values
   return `Welcome to the ${brand} powered by Appzeto.Your OTP for registration is ${otp}.${senderId}`;

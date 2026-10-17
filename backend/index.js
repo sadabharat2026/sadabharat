@@ -72,6 +72,8 @@ const reviewRoutes = require('./routes/reviewRoutes');
 app.use('/api/reviews', reviewRoutes);
 const firebaseRoutes = require('./routes/firebaseRoutes');
 app.use('/api/firebase', firebaseRoutes);
+const ogRoutes = require('./routes/ogRoutes');
+app.use('/api/og', ogRoutes);
 
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
