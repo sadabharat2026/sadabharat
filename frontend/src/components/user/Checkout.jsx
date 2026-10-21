@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiChevronLeft, FiShoppingBag, FiCreditCard, FiTruck, FiCheckCircle, FiShield, FiMinus, FiPlus, FiTrash2, FiCheck, FiRefreshCw, FiTag } from 'react-icons/fi';
 import { useShop } from '../../context/ShopContext';
@@ -34,6 +34,7 @@ const Checkout = () => {
     }
   }, [isAuthenticated, isAuthLoading, navigate]);
 
+  const isSubmittingRef = useRef(false);
   const [step, setStep] = useState(1); // 1: Cart, 2: Details, 3: Payment
   const [isSuccess, setIsSuccess] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
@@ -297,10 +298,29 @@ const Checkout = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const stopPaymentLoading = () => {
+    isSubmittingRef.current = false;
+    setIsPaymentLoading(false);
+  };
+
   // Razorpay Integration
   const handleRazorpay = async () => {
     setIsPaymentLoading(true);
     try {
+      if (typeof window.Razorpay !== 'function') {
+        alert('Payment gateway failed to load. Please check your internet connection and try again.');
+        stopPaymentLoading();
+        return;
+      }
+
+      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
+      if (!razorpayKey) {
+        console.error('VITE_RAZORPAY_KEY_ID is not set — refusing to open checkout with no key.');
+        alert('Online payment is not configured. Please use Cash on Delivery or contact support.');
+        stopPaymentLoading();
+        return;
+      }
+
       // 1. Create Razorpay order on backend
       const res = await api.post('/orders/razorpay/create', {
         items: displayItems.map((i) => ({ product: i._id, quantity: i.quantity || 1, size: i.selectedSize })),
@@ -310,7 +330,7 @@ const Checkout = () => {
       const { id: razorpay_order_id, amount, currency } = res.data.data.order;
 
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_SbjooFQK8nvU6V",
+        key: razorpayKey,
         amount,
         currency,
         name: "Sada Bharat",
@@ -330,7 +350,7 @@ const Checkout = () => {
           } catch (err) {
             console.error("Verification error", err);
           } finally {
-            setIsPaymentLoading(false);
+            stopPaymentLoading();
           }
         },
         prefill: {
@@ -342,16 +362,21 @@ const Checkout = () => {
           color: "#5C2E3E"
         },
         modal: {
-          ondismiss: () => setIsPaymentLoading(false)
+          ondismiss: () => stopPaymentLoading()
         }
       };
 
       const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', (response) => {
+        console.error('Razorpay payment failed', response?.error);
+        alert('Payment failed: ' + (response?.error?.description || 'Please try again.'));
+        stopPaymentLoading();
+      });
       rzp.open();
     } catch (err) {
       console.error("Razorpay initiation error", err);
       alert("Payment gateway failed: " + (err.response?.data?.message || err.message));
-      setIsPaymentLoading(false);
+      stopPaymentLoading();
     }
   };
 
@@ -382,12 +407,17 @@ const Checkout = () => {
   };
 
     const handleProceed = async () => {
+    // Synchronous re-entrancy guard: isPaymentLoading state won't block a
+    // second click/tap that fires before React re-renders the disabled
+    // button, which could otherwise fire two parallel order attempts.
+    if (isSubmittingRef.current) return;
     if (displayItems.length === 0) return;
     if (!validateDetails()) {
       alert("Please fill all required shipping details before proceeding.");
       return;
     }
 
+    isSubmittingRef.current = true;
     setIsPaymentLoading(true);
 
     if (selectedPayment === 'paynow') {
@@ -418,7 +448,7 @@ const Checkout = () => {
       
     } catch (err) {
       console.error("Order creation failed", err);
-      setIsPaymentLoading(false);
+      stopPaymentLoading();
     }
   };
 

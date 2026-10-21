@@ -260,18 +260,12 @@ const createRazorpayOrder = async (req, res) => {
     });
 
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-      console.warn('Razorpay keys not found. Returning mock order id.');
-      return res.status(200).json({
-        success: true,
-        data: {
-          quote,
-          order: {
-            id: 'mock_order_' + Date.now(),
-            amount: Math.round(quote.total * 100),
-            currency: 'INR'
-          }
-        }
-      });
+      // A fake order id here would make the Razorpay widget open against an
+      // order that doesn't exist on Razorpay's servers — it hangs on
+      // "processing" instead of failing, which looks like a broken payment
+      // flow to the customer. Fail immediately with a clear error instead.
+      console.error('Razorpay keys are not configured — cannot create a real order.');
+      return res.status(503).json({ success: false, message: 'Online payment is not configured on the server. Please use Cash on Delivery or contact support.' });
     }
 
     const instance = new Razorpay({
@@ -300,17 +294,23 @@ const verifyRazorpayOrder = async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderDetails } = req.body;
 
-    // Verify signature only if keys exist
-    if (process.env.RAZORPAY_KEY_SECRET) {
-      const sign = razorpay_order_id + "|" + razorpay_payment_id;
-      const expectedSign = crypto
-        .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-        .update(sign.toString())
-        .digest("hex");
+    // Fail closed: without the secret we cannot verify the signature, so we
+    // must never mark an order paid. Previously this skipped verification
+    // entirely when the key was missing, which would let any request create
+    // a "paid" order without an actual payment.
+    if (!process.env.RAZORPAY_KEY_SECRET) {
+      console.error('RAZORPAY_KEY_SECRET is not configured — refusing to verify payment.');
+      return res.status(503).json({ success: false, message: 'Payment verification is not configured on the server.' });
+    }
 
-      if (razorpay_signature !== expectedSign) {
-        return res.status(400).json({ success: false, message: "Invalid signature sent!" });
-      }
+    const sign = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSign = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(sign.toString())
+      .digest("hex");
+
+    if (razorpay_signature !== expectedSign) {
+      return res.status(400).json({ success: false, message: "Invalid signature sent!" });
     }
 
     const { items, shippingAddress, couponCode } = orderDetails || {};
