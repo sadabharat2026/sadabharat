@@ -529,15 +529,15 @@ const Checkout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFCFB] pb-12 pt-6 font-['Poppins']">
+    <div className="min-h-screen bg-[#FDFCFB] pb-36 lg:pb-24 xl:pb-12 pt-6 font-['Poppins']">
       <div className="w-full px-2 md:px-4 lg:px-6 max-w-[1400px] mx-auto">
-        
+
         {/* Header Area */}
         <div className="flex items-center justify-between mb-6 border-b border-gray-200 pb-3">
             <h1 className="text-2xl font-serif font-bold text-[#054425]">
                 Checkout
             </h1>
-            <div 
+            <div
                 onClick={() => navigate(-1)}
                 className="inline-flex items-center gap-1 text-sm cursor-pointer text-gray-500 hover:text-[#054425] transition-colors"
             >
@@ -545,7 +545,7 @@ const Checkout = () => {
             </div>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); handleProceed(); }} className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+        <form id="checkout-form" onSubmit={(e) => { e.preventDefault(); handleProceed(); }} className="grid grid-cols-1 xl:grid-cols-12 gap-8">
           
           {/* Left Column - Forms & Steps */}
           <div className="xl:col-span-8 space-y-6">
@@ -739,7 +739,7 @@ const Checkout = () => {
                 <button
                     type="submit"
                     disabled={displayItems.length === 0 || isPaymentLoading}
-                    className="w-full bg-[#054425] text-white py-3.5 rounded-lg shadow-sm hover:bg-[#1E4D2B] transition-all disabled:bg-gray-200 disabled:text-gray-500 flex items-center justify-center gap-2 text-sm font-medium mt-4"
+                    className="hidden xl:flex w-full bg-[#054425] text-white py-3.5 rounded-lg shadow-sm hover:bg-[#1E4D2B] transition-all disabled:bg-gray-200 disabled:text-gray-500 items-center justify-center gap-2 text-sm font-medium mt-4"
                 >
                     {isPaymentLoading ? 'Processing...' : 'Place Order'}
                 </button>
@@ -752,6 +752,27 @@ const Checkout = () => {
             </div>
           </div>
         </form>
+
+        {/* Mobile sticky checkout bar — keeps Place Order reachable without
+            scrolling to the bottom of the long form + summary stack. Sits
+            above the global bottom nav (h-14, lg:hidden in Navbar.jsx) while
+            that's visible, then drops flush to the bottom once it hides. */}
+        <div className="xl:hidden fixed bottom-14 lg:bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+          <div className="flex items-center gap-3 max-w-[1400px] mx-auto">
+            <div className="shrink-0">
+              <p className="text-[10px] text-gray-500 font-medium leading-none mb-1">Total</p>
+              <p className="text-base font-bold text-[#054425] leading-none">₹{total.toFixed(2)}</p>
+            </div>
+            <button
+                type="submit"
+                form="checkout-form"
+                disabled={displayItems.length === 0 || isPaymentLoading}
+                className="flex-1 bg-[#054425] text-white py-3 rounded-lg shadow-sm hover:bg-[#1E4D2B] transition-all disabled:bg-gray-200 disabled:text-gray-500 flex items-center justify-center gap-2 text-sm font-medium"
+            >
+                {isPaymentLoading ? 'Processing...' : 'Place Order'}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Success Popup */}
