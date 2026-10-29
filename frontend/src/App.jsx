@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation, Outlet, Navigate, 
 import { ShopProvider, useShop } from './context/ShopContext';
 import Lenis from 'lenis';
 import 'lenis/dist/lenis.css';
-import { FaWhatsapp } from 'react-icons/fa';
+import { FaWhatsapp, FaShoppingBag } from 'react-icons/fa';
 import { getWhatsAppHref, handleWhatsAppClick } from './utils/whatsapp';
 // Routing Guards
 import ProtectedRoute from './components/routing/ProtectedRoute';
@@ -101,6 +101,8 @@ import VendorAuthGuard from './components/vendor/VendorAuthGuard';
 const PublicLayout = () => {
   const location = useLocation();
   const hideWhatsApp = ['/login', '/register'].includes(location.pathname);
+  const { cartCount, isCartDrawerOpen, setIsCartDrawerOpen } = useShop();
+  const showFloatingCart = !hideWhatsApp && cartCount > 0 && !isCartDrawerOpen && location.pathname !== '/checkout';
 
   return (
     <>
@@ -111,6 +113,23 @@ const PublicLayout = () => {
           <Outlet />
         </main>
         <Footer />
+
+        {/* Floating Cart button, shown above the WhatsApp widget once the cart has items */}
+        {showFloatingCart && (
+          <motion.button
+            type="button"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            onClick={() => setIsCartDrawerOpen(true)}
+            aria-label={`Open cart (${cartCount} items)`}
+            className="fixed bottom-44 lg:bottom-28 right-4 lg:right-6 z-[9999] w-14 h-14 md:w-16 md:h-16 rounded-full bg-[#054425] text-white flex items-center justify-center shadow-[0_8px_20px_rgba(5,68,37,0.4)] border-2 border-white hover:scale-110 active:scale-95 transition-transform duration-300"
+          >
+            <FaShoppingBag className="w-6 h-6 md:w-7 md:h-7" />
+            <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 rounded-full bg-white text-[#054425] text-[11px] font-black flex items-center justify-center border border-[#054425]/20">
+              {cartCount}
+            </span>
+          </motion.button>
+        )}
 
         {/* Global Animated WhatsApp Chat Widget */}
         {!hideWhatsApp && (

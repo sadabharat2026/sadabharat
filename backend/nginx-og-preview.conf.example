@@ -1,0 +1,20 @@
+# Add to the nginx server block that serves sadabharatayurvedic.com, ABOVE the
+# SPA `location /` block. Link-preview bots (WhatsApp, Facebook, etc.) get the
+# per-product Open Graph page from the backend (/api/og/product/:id), so the
+# product photo shows instead of the logo. Normal visitors still get the SPA.
+#
+# Then: sudo nginx -t && sudo systemctl reload nginx
+
+map $http_user_agent $is_link_preview_bot {
+    default 0;
+    ~*(facebookexternalhit|facebot|whatsapp|twitterbot|linkedinbot|slackbot|telegrambot|discordbot|pinterest|skypeuripreview) 1;
+}
+# (the `map` block goes in the http {} context, e.g. top of the site conf file)
+
+# inside server { ... }
+location ~ ^/product/([a-fA-F0-9]{24})/?$ {
+    if ($is_link_preview_bot) {
+        rewrite ^/product/(.*)$ /api/og/product/$1 last;
+    }
+    try_files $uri /index.html;
+}
