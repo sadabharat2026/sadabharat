@@ -2,8 +2,6 @@
 node_modules/
 
 # Env files (backend already ignores .env; keep secrets out of git)
-.env
-.env.*
 !.env.example
 
 # Build
@@ -18,3 +16,4 @@ dist-ssr/
 # Local dumps / unused media (not part of the app)
 frontend/src/extracted-testimonial-animation/
 frontend/public/top_banner_video.mp4
+config.bat
