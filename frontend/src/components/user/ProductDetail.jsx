@@ -253,6 +253,16 @@ const ProductDetail = () => {
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}/product/${product._id}`;
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (!isMobile) {
+      // Desktop share sheets drop the link when a file is attached, so share the
+      // link as a WhatsApp message instead (and keep a copy on the clipboard).
+      navigator.clipboard?.writeText(shareUrl).catch(() => {});
+      setIsLinkCopied(true);
+      setTimeout(() => setIsLinkCopied(false), 2000);
+      window.open(`https://wa.me/?text=${encodeURIComponent(`${product.name}\n${shareUrl}`)}`, '_blank', 'noopener');
+      return;
+    }
     if (navigator.share) {
       try {
         // Try sharing the product photo itself along with the link
