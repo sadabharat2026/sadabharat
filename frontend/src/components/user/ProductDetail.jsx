@@ -255,7 +255,19 @@ const ProductDetail = () => {
     const shareUrl = `${window.location.origin}/product/${product._id}`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: product.name, url: shareUrl });
+        // Try sharing the product photo itself along with the link
+        let files = [];
+        try {
+          const imgUrl = new URL(product.image, window.location.origin).href;
+          const blob = await (await fetch(imgUrl)).blob();
+          const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+          const file = new File([blob], `${product.name.replace(/[^\w]+/g, '-')}.${ext}`, { type: blob.type || 'image/jpeg' });
+          if (navigator.canShare?.({ files: [file] })) files = [file];
+        } catch (imgErr) {
+          // image fetch blocked (CORS etc.) — fall back to link-only share
+        }
+        const text = `${product.name}\n${shareUrl}`;
+        await navigator.share(files.length ? { files, title: product.name, text } : { title: product.name, url: shareUrl });
       } catch (err) {
         // user cancelled or share failed silently
       }
